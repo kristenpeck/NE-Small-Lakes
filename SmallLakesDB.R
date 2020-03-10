@@ -8,6 +8,7 @@
 
 library(readxl)
 library(ggplot2)
+library(plyr)
 library(dplyr)
 library(FSA)
 library(lubridate)
@@ -20,18 +21,38 @@ str(catch)
 env <- read_excel("SmallLakesDB.xlsx",sheet = "Enviro", na = "NA")
 str(env)
 
+
+effort2019 <- effort %>% 
+  filter(year %in% 2019)
+
 catch2019 <- catch %>% 
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
                                        Trophy=550, 1000), use.names=T)) %>% 
   mutate(k = (100000*m)/fl^3) %>% 
-  filter(year %in% 2019)
+  filter(year %in% 2019) %>% 
+  filter(sp %in% c("RB","EB"))
 
 catch.effort <- full_join(effort, catch, by= c("lake", "year", "effortid"))
-catch.effort2019 <- catch.effort %>% 
-  filter(lake %in% 2019)
 
-unique(catch2019$lake)
+catch.effort2019 <- catch.effort %>% 
+  filter(year %in% 2019) %>% 
+  filter(sp %in% c("RB","EB"))
+
+#### CPUE ####
+ 
+soaktime <- ddply(effort2019,~lake, summarize, soak.time = sum(efforthr))
+tot.catch <- ddply(catch2019,~lake, summarize, tot.catch = length(sp))
+
+CPUE <- soaktime %>% 
+  full_join(tot.catch) %>% 
+  mutate(cpue = round(tot.catch/soak.time,2))
+CPUE
+
+
+#QA#
+unique(catch.effort2019$sp)
 unique(catch2019$mat)
+
 
 
 #### Pete ####
