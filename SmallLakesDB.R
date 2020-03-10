@@ -32,6 +32,7 @@ catch2019 <- catch %>%
   filter(year %in% 2019) %>% 
   filter(sp %in% c("RB","EB"))
 
+
 catch.effort <- full_join(effort, catch, by= c("lake", "year", "effortid"))
 
 catch.effort2019 <- catch.effort %>% 
@@ -48,6 +49,28 @@ CPUE <- soaktime %>%
   mutate(cpue = round(tot.catch/soak.time,2))
 CPUE
 
+# table 
+
+table.fish <- ddply(catch2019, ~lake, summarize,
+                    `#caught` = length(sp),
+                    `% not sterile` = 
+                      round(length(which(mat %in% c("M","MT","SP")))/
+                      length(which(!is.na(mat))),2)*100,
+                    #totalfl.checked = length(which(!is.na(fl))),
+                    #totalm.checked = length(which(!is.na(m))),
+                    `mean FL (mm)` = round(mean(fl, na.rm=T),2),
+                    `min FL (mm)` = round(min(fl, na.rm=T),2),
+                    `max FL (mm)` = round(max(fl, na.rm=T),2),
+                    `mean mass (g)` = round(mean(m, na.rm=T),2),
+                    `min mass (g)` = round(min(m, na.rm=T),2),
+                    `max mass (g)` = round(max(m, na.rm=T),2),
+                    `mean k` = round(mean(k, na.rm=T),2),
+                    `min k` = round(min(k, na.rm=T),2),
+                    `max k` = round(max(k, na.rm=T),2))
+
+table.fish
+
+write.csv(table.fish, file = "table.fish.csv",row.names = F)
 
 #QA#
 unique(catch.effort2019$sp)
@@ -59,7 +82,6 @@ unique(catch2019$mat)
 
 lk.catch2019 <- catch2019 %>% 
   filter(lake %in% "Pete") %>% 
-  filter(sp %in% "RB") %>% 
   filter(!is.na(ageid))
   
 lk.catch2019
@@ -100,7 +122,7 @@ lk.catch2019 <- catch2019 %>%
   filter(sp %in% "RB")
 
 ggplot(data=lk.catch2019) +
-  geom_histogram(aes(x=fl, fill=mat), colour = "black", binwidth= 10)+
+  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
   ggtitle(lk.catch2019$lake)
 
 #### Chun env ####
@@ -148,40 +170,6 @@ lk.catch2019 <- catch2019 %>%
   filter(sp %in% "RB")
 str(lk.catch2019)
 
-table.qual <- summarise(lk.catch2019,
-            totcaught = length(sp),
-            totmatchecked = length(which(!is.na(mat))),
-            totST = length(which(mat %in% "ST")),
-            totM = length(which(mat %in% "M")),
-            totMT = length(which(mat %in% "MT")),
-            totIM = length(which(mat %in% "IM")),
-            totSP = length(which(mat %in% "SP")),
-            totalfl.checked = length(which(!is.na(fl))),
-            totalm.checked = length(which(!is.na(m))),
-            aveFL = mean(fl, na.rm=T),
-            minFL = min(fl, na.rm=T),
-            maxFL = max(fl, na.rm=T),
-            avem = mean(m, na.rm=T),
-            minm = min(m, na.rm=T),
-            maxm = max(m, na.rm=T),
-            avek = mean(k, na.rm=T),
-            mink = min(k, na.rm=T),
-            maxk = max(k, na.rm=T))
-
-table.qual
-
-unique(lk.catch2019$stomach)
-
-#CPUE
-
-lk.effort2019 <- effort %>% 
-  filter(year %in% 2019) %>% 
-  filter(lake %in% "Quality")
-lk.effort2019$efforthr  
-
-(CPUE <- table.qual$totcaught/sum(lk.effort2019$efforthr))
-  
-  
 
 #length-frequency plot
 ggplot(data=lk.catch2019) +
