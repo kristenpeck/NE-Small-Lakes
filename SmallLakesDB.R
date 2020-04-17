@@ -14,11 +14,11 @@ library(FSA)
 library(lubridate)
 library(tidyr)
 
-effort <- read_excel("SmallLakesDB.xlsx",sheet = "Effort")
+effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort)
-catch <- read_excel("SmallLakesDB.xlsx",sheet = "Catch", na = "NA")
+catch <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Catch", na = "NA")
 str(catch)
-env <- read_excel("SmallLakesDB.xlsx",sheet = "Enviro", na = "NA")
+env <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Enviro", na = "NA")
 str(env)
 
 
@@ -29,9 +29,19 @@ catch2019 <- catch %>%
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
                                        Trophy=550, 1000), use.names=T)) %>% 
   mutate(k = (100000*m)/fl^3) %>% 
-  filter(year %in% 2019) %>% 
-  filter(sp %in% c("RB","EB"))
+  filter(year %in% 2019)
 
+catch.effort2019 <- full_join(effort2019, catch2019, by=c("lake", "year", "effortid"))
+
+#Table 1 - net set, CPUE
+
+str(catch.effort2019)
+
+Table1 <- catch.effort2019 %>% 
+  select(lake,effortid,liftdate,efforthr,sp,fl,m) %>% 
+  group_by(lake,nettype) %>% 
+  summarise(min(fl, na.rm=T), max(fl, na.rm=T))
+Table1
 
 catch.effort <- full_join(effort, catch, by= c("lake", "year", "effortid"))
 
