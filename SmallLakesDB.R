@@ -29,7 +29,10 @@ catch2019 <- catch %>%
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
                                        Trophy=550, 1000), use.names=T)) %>% 
   mutate(k = (100000*m)/fl^3) %>% 
-  filter(year %in% 2019)
+  filter(year %in% 2019) %>% 
+  arrange(sp)
+
+catch2019$catchID <- 1:nrow(catch2019)
 
 catch.effort2019 <- full_join(effort2019, catch2019, by=c("lake", "year", "effortid"))
 
@@ -37,11 +40,28 @@ catch.effort2019 <- full_join(effort2019, catch2019, by=c("lake", "year", "effor
 
 str(catch.effort2019)
 
+#### CPUE ####
+
+soaktime <- ddply(effort2019,~lake, summarize, soak.time = sum(efforthr))
+tot.catch <- ddply(catch2019,~lake, summarize, tot.catch = length(sp))
+
+CPUE <- soaktime %>% 
+  full_join(tot.catch) %>% 
+  mutate(cpue = round(tot.catch/soak.time,2))
+CPUE
+
+
 Table1 <- catch.effort2019 %>% 
-  select(lake,effortid,liftdate,efforthr,sp,fl,m) %>% 
+  filter(sp %in% c("RB","EB")) %>% 
   group_by(lake,nettype) %>% 
-  summarise(min(fl, na.rm=T), max(fl, na.rm=T))
+  summarise(`Soak Time`=unique(efforthr), 
+            `Species`=paste(unique(sp), collapse=","), `# caught` = length(unique(catchID)),
+            CPUE = round(length(unique(catchID))/unique(efforthr),2),
+            `FL range`=paste(min(fl, na.rm=T), max(fl, na.rm=T), collapse=","),
+            `m range`=paste(min(m, na.rm=T), max(m, na.rm=T), collapse=","))
 Table1
+
+
 
 catch.effort <- full_join(effort, catch, by= c("lake", "year", "effortid"))
 
