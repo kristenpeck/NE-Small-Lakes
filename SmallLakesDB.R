@@ -58,26 +58,11 @@ Table1 <- catch.effort2019 %>%
             `Species`=paste(unique(sp), collapse=","), `# caught` = length(unique(catchID)),
             CPUE = round(length(unique(catchID))/unique(efforthr),2),
             `FL range`=paste(min(fl, na.rm=T), max(fl, na.rm=T), collapse=","),
-            `m range`=paste(min(m, na.rm=T), max(m, na.rm=T), collapse=","))
+            `m range`=paste(min(m, na.rm=T), max(m, na.rm=T), collapse=","),
+            `k range`=paste(round(min(k, na.rm=T),2), round(max(k, na.rm=T),2),collapse=","))
 Table1
 
 
-
-catch.effort <- full_join(effort, catch, by= c("lake", "year", "effortid"))
-
-catch.effort2019 <- catch.effort %>% 
-  filter(year %in% 2019) %>% 
-  filter(sp %in% c("RB","EB"))
-
-#### CPUE ####
- 
-soaktime <- ddply(effort2019,~lake, summarize, soak.time = sum(efforthr))
-tot.catch <- ddply(catch2019,~lake, summarize, tot.catch = length(sp))
-
-CPUE <- soaktime %>% 
-  full_join(tot.catch) %>% 
-  mutate(cpue = round(tot.catch/soak.time,2))
-CPUE
 
 # table 
 
