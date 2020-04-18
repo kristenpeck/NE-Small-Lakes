@@ -15,6 +15,8 @@ library(lubridate)
 library(tidyr)
 library(sf)
 library(mapview)
+library(bcdata)
+
 
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort)
@@ -139,11 +141,52 @@ print(lk.overview.map)
 
 #### Appendix: gillnets locations: ####
 
+indiv.nets <- locations2 %>% 
+  filter(lake %in% c("Boulder","Chunamun","Pete","Quality","Sundance"))
+
+indiv.nets.st <- st_as_sf(indiv.nets, 
+                   coords = c("UTME", "UTMN"), 
+                   crs = 3157)
+
+lks.albers <- st_transform(indiv.nets.st, crs=3005)
 
 
+bc <- bcdc_query_geodata('7-5m-provinces-and-states-the-atlas-of-canada-base-maps-for-bc') %>% 
+  filter(ENGLISH_NAME == 'British Columbia') %>% 
+  collect()
+bc
 
+Peace <- bcdc_query_geodata('WHSE_ADMIN_BOUNDARIES.EADM_WLAP_REGION_BND_AREA_SVW') %>% 
+  filter(REGION_NAME == 'Peace') %>% 
+  collect()
+Peace
 
+bcdc_query_geodata('WHSE_BASEMAPPING.FWA_LAKES_POLY')
 
+lks.individual <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
+  filter(INTERSECTS(lks.albers)) %>%
+  collect()
+
+mapview(lks.individual)
+
+GNfloat <- lks.albers %>% 
+  filter(nettype %in% "RIC7 FGN")
+
+st_drop_geometry(GNfloat)
+class(st_geometry(GNfloat)[1])
+plot(st_geometry(GNfloat))
+
+GNsink <- lks.albers %>% 
+  filter(nettype %in% "RIC7 SGN")
+
+ggplot()+
+ # geom_sf(data=Peace, fill="tan")+
+  geom_sf(data=lks.individual, fill="blue")+
+  geom_point(data=GNfloat, colour="black")+
+  geom_path(data=GNfloat)+
+  geom_sf(data=GNsink, colour="gray")
+
+?geom_sf
 #### Pete ####
 
 lk.catch2019 <- catch2019 %>% 
