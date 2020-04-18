@@ -13,6 +13,8 @@ library(dplyr)
 library(FSA)
 library(lubridate)
 library(tidyr)
+library(sf)
+library(mapview)
 
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort)
@@ -87,9 +89,47 @@ table.fish
 
 write.csv(table.fish, file = "table.fish.csv",row.names = F)
 
-#QA#
-unique(catch.effort2019$sp)
-unique(catch2019$mat)
+# Figure 1: overview map
+
+library(reshape2)
+
+str(effort2019)
+
+locations.easting <- effort2019 %>% 
+  select(lake, nettype, starteast, endeast) 
+
+loc.east2 <- locations.easting %>% 
+  melt() %>% 
+  mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
+  select(lake, nettype, startend, UTME=value)
+loc.east2
+
+locations.northing <- effort2019 %>% 
+  select(lake, nettype, startnorth, endnorth) 
+
+loc.north2 <- locations.northing %>% 
+  melt() %>% 
+  mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
+  select(lake, nettype, startend, UTMN=value)
+loc.north2
+
+
+
+locations2 <- full_join(loc.east2, loc.north2, by=c("lake", "nettype", "startend"))
+
+
+pts <- st_as_sf(locations2, 
+         coords = c("UTME", "UTMN"), 
+         crs = 3157)
+
+ggplot()+
+  geom_sf(data=pts, )
+
+mapview(pts, label = TRUE)
+  ?mapview
+
+
+
 
 
 
