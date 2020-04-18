@@ -137,6 +137,12 @@ print(lk.overview.map)
 
 
 
+#### Appendix: gillnets locations: ####
+
+
+
+
+
 
 #### Pete ####
 
