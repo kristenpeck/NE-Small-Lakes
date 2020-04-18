@@ -38,7 +38,7 @@ catch2019$catchID <- 1:nrow(catch2019)
 
 catch.effort2019 <- full_join(effort2019, catch2019, by=c("lake", "year", "effortid"))
 
-#Table 1 - net set, CPUE
+#### Table 1 - net set, CPUE ####
 
 str(catch.effort2019)
 
@@ -66,7 +66,7 @@ Table1
 
 
 
-# table 
+# table -old
 
 table.fish <- ddply(catch2019, ~lake, summarize,
                     `#caught` = length(sp),
@@ -87,16 +87,16 @@ table.fish <- ddply(catch2019, ~lake, summarize,
 
 table.fish
 
-write.csv(table.fish, file = "table.fish.csv",row.names = F)
+#write.csv(table.fish, file = "table.fish.csv",row.names = F)
 
-# Figure 1: overview map
+#### Maps ####
 
 library(reshape2)
 
 str(effort2019)
 
 locations.easting <- effort2019 %>% 
-  select(lake, nettype, starteast, endeast) 
+  select(lake, nettype, starteast, endeast)
 
 loc.east2 <- locations.easting %>% 
   melt() %>% 
@@ -113,22 +113,27 @@ loc.north2 <- locations.northing %>%
   select(lake, nettype, startend, UTMN=value)
 loc.north2
 
-
-
 locations2 <- full_join(loc.east2, loc.north2, by=c("lake", "nettype", "startend"))
 
 
-pts <- st_as_sf(locations2, 
+# Figure 1 - overview map: ####
+
+locations.lk <- locations2 %>% 
+  filter(startend %in% "start", nettype %in% "RIC7 SGN")
+
+
+lk.pts <- st_as_sf(locations.lk, 
          coords = c("UTME", "UTMN"), 
          crs = 3157)
 
-ggplot()+
-  geom_sf(data=pts, )
-
-mapview(pts, label = TRUE)
-  ?mapview
-
-
+lk.overview.map <- mapview(lk.pts, cex=2, lwd=1, legend=F,map.types="OpenStreetMap") %>% 
+  addStaticLabels(label = locations.lk$lake,
+                  noHide = F,
+                  direction = 'top',
+                  textOnly = TRUE,
+                  textsize = "20px")
+  
+print(lk.overview.map)
 
 
 
