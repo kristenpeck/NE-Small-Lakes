@@ -16,7 +16,7 @@ library(tidyr)
 library(sf)
 library(mapview)
 library(bcdata)
-
+library(reshape2)
 
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort)
@@ -58,12 +58,12 @@ CPUE
 Table1 <- catch.effort2019 %>% 
   filter(sp %in% c("RB","EB")) %>% 
   group_by(lake,nettype) %>% 
-  summarise(`Soak Time`=unique(efforthr), 
+  summarise(`Soak Time (hrs)`=unique(efforthr), 
             `Species`=paste(unique(sp), collapse=","), `# caught` = length(unique(catchID)),
             CPUE = round(length(unique(catchID))/unique(efforthr),2),
-            `FL range`=paste(min(fl, na.rm=T), max(fl, na.rm=T), collapse=","),
-            `m range`=paste(min(m, na.rm=T), max(m, na.rm=T), collapse=","),
-            `k range`=paste(round(min(k, na.rm=T),2), round(max(k, na.rm=T),2),collapse=","))
+            `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
+            `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
+            `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) 
 Table1
 
 
@@ -93,7 +93,7 @@ table.fish
 
 #### Maps ####
 
-library(reshape2)
+
 
 str(effort2019)
 
@@ -115,7 +115,7 @@ loc.north2 <- locations.northing %>%
   select(lake, nettype, startend, UTMN=value)
 loc.north2
 
-locations2 <- full_join(loc.east2, loc.north2, by=c("lake", "nettype", "startend"))
+(locations2 <- full_join(loc.east2, loc.north2, by=c("lake", "nettype", "startend")))
 
 
 # Figure 1 - overview map: ####
@@ -151,6 +151,7 @@ indiv.nets.st <- st_as_sf(indiv.nets,
 lks.albers <- st_transform(indiv.nets.st, crs=3005)
 
 
+
 bc <- bcdc_query_geodata('7-5m-provinces-and-states-the-atlas-of-canada-base-maps-for-bc') %>% 
   filter(ENGLISH_NAME == 'British Columbia') %>% 
   collect()
@@ -161,32 +162,61 @@ Peace <- bcdc_query_geodata('WHSE_ADMIN_BOUNDARIES.EADM_WLAP_REGION_BND_AREA_SVW
   collect()
 Peace
 
-bcdc_query_geodata('WHSE_BASEMAPPING.FWA_LAKES_POLY')
+lks.mapping <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
+  filter(AREA_HA > 10000) %>%
+  collect()
 
+#bcdc_query_geodata('WHSE_BASEMAPPING.FWA_LAKES_POLY')
 lks.individual <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
   filter(INTERSECTS(lks.albers)) %>%
   collect()
 
-mapview(lks.individual)
 
-GNfloat <- lks.albers %>% 
-  filter(nettype %in% "RIC7 FGN")
-
-st_drop_geometry(GNfloat)
-class(st_geometry(GNfloat)[1])
-plot(st_geometry(GNfloat))
-
-GNsink <- lks.albers %>% 
-  filter(nettype %in% "RIC7 SGN")
+net.lines<- lks.albers %>% 
+  group_by(lake, nettype) %>% 
+  summarize() %>% 
+  st_cast("LINESTRING")
 
 ggplot()+
- # geom_sf(data=Peace, fill="tan")+
-  geom_sf(data=lks.individual, fill="blue")+
-  geom_point(data=GNfloat, colour="black")+
-  geom_path(data=GNfloat)+
-  geom_sf(data=GNsink, colour="gray")
+  geom_sf(data=bc, fill="white")+
+  geom_sf(data=Peace, fill="tan")+
+  geom_sf(data=lks.mapping, col="blue")+
+  geom_sf(data=lks.albers, size=2)
 
-?geom_sf
+
+# sundance
+
+lake.select <- "Sundance"
+
+
+lk.nets.select <- lks.albers %>% 
+  filter(lake %in% lake.select)
+
+lk.net.lines.select <- net.lines %>% 
+  filter(lake %in% lake.select)
+
+lks.outline.select <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
+  filter(INTERSECTS(lk.nets.select)) %>%
+  collect()
+
+ggplot()+
+  geom_sf(data=lks.outline.select, fill="light blue")+
+  geom_sf(data=lk.net.lines.select, aes(colour=nettype))+
+  geom_sf(data=lk.nets.select, aes(colour=nettype))+
+  ggtitle(paste(lake.select, "Lake"))+
+  scale_colour_grey()
+
+bcdc_query_geodata('WHSE_BASEMAPPING.DRA_DGTL_ROAD_ATLAS_DPAR_SP')
+
+
+
+
+
+
+
+
+
+
 #### Pete ####
 
 lk.catch2019 <- catch2019 %>% 
