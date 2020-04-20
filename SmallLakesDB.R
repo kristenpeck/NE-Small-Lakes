@@ -226,28 +226,51 @@ ggplot(data=lk.catch2019) +
   geom_histogram(aes(x=fl, fill=mat), colour = "black", binwidth= 10)+
   ggtitle(lk.catch2019$lake)
 
-#### Pete env ####
-str(env)
+
+### facet plots, env ####
+
 lk.env2019 <- env %>% 
   mutate(year = year(date)) %>% 
   filter(year %in% 2019) %>% 
-  filter(lake %in% "Pete") %>% 
-  gather("var","value",tempdown, -dodown, -conddown)
+  gather("var","value",tempdown, dodown, -conddown)
 
-str(lk.env2019)
 
-ggplot(data=lk.env2019)+
-  geom_path(aes(x=value, y=depthdown, colour=var), size=2)+
+Figure.env <- ggplot(data=lk.env2019)+
+  geom_path(aes(x=value, y=depthdown, colour=var), size=1.5)+
   scale_y_reverse(name= "Depth (m)", 
-                  breaks=seq(min(lk.env2019$depthdown),
-                             max(lk.env2019$depthdown),1))+
+                  breaks=seq(min(lk.env2019$depthdown, na.rm=T),
+                             max(lk.env2019$depthdown, na.rm=T),1))+
   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value, na.rm=T),
                                           max(lk.env2019$value, na.rm=T),1))+
-  scale_colour_manual(values=c("black"),
-                      name = "",labels = c("Temp. deg C"))+
-  ggtitle(lk.env2019$lake)
+  scale_colour_manual(values=c("black", "gray60"),
+                      name = "",labels = c("Dis. Oxygen (mg/L)","Temp. (deg C)"))+
+  facet_wrap(~lake, ncol=2)+
+  theme_bw()
+Figure.env
 
-(ave.cond <- mean(lk.env2019$conddown, na.rm=T))
+
+# #### Pete env 
+# str(env)
+# lk.env2019 <- env %>% 
+#   mutate(year = year(date)) %>% 
+#   filter(year %in% 2019) %>% 
+#   filter(lake %in% "Pete") %>% 
+#   gather("var","value",tempdown, -dodown, -conddown)
+# 
+# str(lk.env2019)
+# 
+# ggplot(data=lk.env2019)+
+#   geom_path(aes(x=value, y=depthdown, colour=var), size=2)+
+#   scale_y_reverse(name= "Depth (m)", 
+#                   breaks=seq(min(lk.env2019$depthdown),
+#                              max(lk.env2019$depthdown),1))+
+#   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value, na.rm=T),
+#                                           max(lk.env2019$value, na.rm=T),1))+
+#   scale_colour_manual(values=c("black"),
+#                       name = "",labels = c("Temp. deg C"))+
+#   ggtitle(lk.env2019$lake)
+# 
+# (ave.cond <- mean(lk.env2019$conddown, na.rm=T))
 
 
 
