@@ -17,6 +17,7 @@ library(sf)
 library(mapview)
 library(bcdata)
 library(reshape2)
+library(leaflet)
 
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort)
@@ -98,37 +99,29 @@ table.fish
 str(effort2019)
 
 locations.easting <- effort2019 %>% 
-  select(lake, nettype, starteast, endeast)
-
-loc.east2 <- locations.easting %>% 
+  select(lake, nettype, starteast, endeast) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
   select(lake, nettype, startend, UTME=value)
-loc.east2
 
 locations.northing <- effort2019 %>% 
-  select(lake, nettype, startnorth, endnorth) 
-
-loc.north2 <- locations.northing %>% 
+  select(lake, nettype, startnorth, endnorth) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
   select(lake, nettype, startend, UTMN=value)
-loc.north2
 
-(locations2 <- full_join(loc.east2, loc.north2, by=c("lake", "nettype", "startend")))
+
+(locations <- full_join(locations.easting, locations.northing, by=c("lake", "nettype", "startend")))
 
 
 # Figure 1 - overview map: ####
 
-locations.lk <- locations2 %>% 
-  filter(startend %in% "start", nettype %in% "RIC7 SGN")
+locations.lk <- locations %>% 
+  filter(startend %in% "start", nettype %in% "RIC7 SGN") %>% 
+  st_as_sf(coords = c("UTME", "UTMN"), 
+           crs = 3157)
 
-
-lk.pts <- st_as_sf(locations.lk, 
-         coords = c("UTME", "UTMN"), 
-         crs = 3157)
-
-lk.overview.map <- mapview(lk.pts, cex=2, lwd=1, legend=F,map.types="OpenStreetMap") %>% 
+lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenStreetMap") %>% 
   addStaticLabels(label = locations.lk$lake,
                   noHide = F,
                   direction = 'top',
@@ -141,7 +134,7 @@ print(lk.overview.map)
 
 #### Appendix: gillnets locations: ####
 
-indiv.nets <- locations2 %>% 
+indiv.nets <- locations %>% 
   filter(lake %in% c("Boulder","Chunamun","Pete","Quality","Sundance"))
 
 indiv.nets.st <- st_as_sf(indiv.nets, 
@@ -171,7 +164,6 @@ lks.individual <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
   filter(INTERSECTS(lks.albers)) %>%
   collect()
 
-
 net.lines<- lks.albers %>% 
   group_by(lake, nettype) %>% 
   summarize() %>% 
@@ -184,9 +176,11 @@ ggplot()+
   geom_sf(data=lks.albers, size=2)
 
 
+
+
 # sundance
 
-lake.select <- "Sundance"
+lake.select <- "Quality"
 
 
 lk.nets.select <- lks.albers %>% 
@@ -195,25 +189,28 @@ lk.nets.select <- lks.albers %>%
 lk.net.lines.select <- net.lines %>% 
   filter(lake %in% lake.select)
 
-lks.outline.select <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
-  filter(INTERSECTS(lk.nets.select)) %>%
-  collect()
+#could not get a good enough basemap so did not use the following:
+# lks.outline.select <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
+#   filter(INTERSECTS(lk.nets.select)) %>%
+#   collect()
+# 
+# background <- st_buffer(st_as_sfc(st_bbox(lks.outline.select),crs=3005),100)
+# roads <- bcdc_query_geodata("bb060417-b6e6-4548-b837-f9060d94743e") %>% 
+#   filter(INTERSECTS(background)) %>% 
+#   collect() %>% 
+#   st_crop(background)
+# 
+# ggplot()+
+#   geom_sf(data=roads, colour="tan")+
+#   geom_sf(data=lks.outline.select, fill="light blue")+
+#   geom_sf(data=lk.net.lines.select, aes(colour=nettype))+
+#   geom_sf(data=lk.nets.select, aes(colour=nettype))+
+#   ggtitle(paste(lake.select, "Lake"))+
+#   scale_colour_grey()
 
-ggplot()+
-  geom_sf(data=lks.outline.select, fill="light blue")+
-  geom_sf(data=lk.net.lines.select, aes(colour=nettype))+
-  geom_sf(data=lk.nets.select, aes(colour=nettype))+
-  ggtitle(paste(lake.select, "Lake"))+
-  scale_colour_grey()
 
-bcdc_query_geodata('WHSE_BASEMAPPING.DRA_DGTL_ROAD_ATLAS_DPAR_SP')
-
-
-
-
-
-
-
+mapview(lk.net.lines.select, zcol="nettype",lwd=2, legend=T,map.types="Esri.WorldImagery",layer.name="Net Type",
+        color = c("gray50","white"))
 
 
 
