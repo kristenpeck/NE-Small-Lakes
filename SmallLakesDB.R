@@ -144,41 +144,42 @@ indiv.nets.st <- st_as_sf(indiv.nets,
 lks.albers <- st_transform(indiv.nets.st, crs=3005)
 
 
+#overviewmap alternative - did not use because ugly
 
-bc <- bcdc_query_geodata('7-5m-provinces-and-states-the-atlas-of-canada-base-maps-for-bc') %>% 
-  filter(ENGLISH_NAME == 'British Columbia') %>% 
-  collect()
-bc
-
-Peace <- bcdc_query_geodata('WHSE_ADMIN_BOUNDARIES.EADM_WLAP_REGION_BND_AREA_SVW') %>% 
-  filter(REGION_NAME == 'Peace') %>% 
-  collect()
-Peace
-
-lks.mapping <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
-  filter(AREA_HA > 10000) %>%
-  collect()
-
-#bcdc_query_geodata('WHSE_BASEMAPPING.FWA_LAKES_POLY')
-lks.individual <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
-  filter(INTERSECTS(lks.albers)) %>%
-  collect()
+# bc <- bcdc_query_geodata('7-5m-provinces-and-states-the-atlas-of-canada-base-maps-for-bc') %>% 
+#   filter(ENGLISH_NAME == 'British Columbia') %>% 
+#   collect()
+# bc
+# 
+# Peace <- bcdc_query_geodata('WHSE_ADMIN_BOUNDARIES.EADM_WLAP_REGION_BND_AREA_SVW') %>% 
+#   filter(REGION_NAME == 'Peace') %>% 
+#   collect()
+# Peace
+# 
+# lks.mapping <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
+#   filter(AREA_HA > 10000) %>%
+#   collect()
+# 
+# #bcdc_query_geodata('WHSE_BASEMAPPING.FWA_LAKES_POLY')
+# lks.individual <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
+#   filter(INTERSECTS(lks.albers)) %>%
+#   collect()
 
 net.lines<- lks.albers %>% 
   group_by(lake, nettype) %>% 
   summarize() %>% 
   st_cast("LINESTRING")
 
-ggplot()+
-  geom_sf(data=bc, fill="white")+
-  geom_sf(data=Peace, fill="tan")+
-  geom_sf(data=lks.mapping, col="blue")+
-  geom_sf(data=lks.albers, size=2)
+# ggplot()+
+#   geom_sf(data=bc, fill="white")+
+#   geom_sf(data=Peace, fill="tan")+
+#   geom_sf(data=lks.mapping, col="blue")+
+#   geom_sf(data=lks.albers, size=2)
 
 
 
 
-# sundance
+# Appendix - plot nets at individual lakes
 
 lake.select <- "Quality"
 
@@ -353,6 +354,28 @@ ggplot(data=lk.catch2019) +
 fit1 <- lm(logm~logL, data=lk.catch2019)
 summary(fit1)
 
+residPlot(fit1)
+#predict weights of fish who didn't have a weight
+
+no.wt <- lk.catch2019 %>% 
+  filter(!is.na(fl)) %>% 
+  filter(is.na(m)) %>% 
+  select(fl,logL)
+
+pred.logwt <- predict(fit1, no.wt, interval ="prediction")
+cf <- logbtcf(fit1, 10)
+back.trans <- cf*10^pred.logwt
+
+no.wt$pred.m <- back.trans[,1]
+no.wt$pred.m.lwr <- back.trans[,2]
+no.wt$pred.m.upr <- back.trans[,3]
+
+lk.catch2019.temp <- lk.catch2019 %>% 
+  full_join(no.wt)
+# note: this is not a beautiful way of doing this, since it duplicates for other masses that were measured but have the same value. 
+
+
+
 #inspecting outliers:
 ggplot(data=lk.catch2019) +
   geom_point(aes(x=fl, y=m, col=mat),  size=4)+
@@ -367,7 +390,10 @@ ggplot(data=lk.catch2019) +
   geom_smooth(aes(x=logL, y=logm), method="lm")+
   ggtitle(lk.catch2019$lake)
 
-#predict weights of fish who didn't have a weight
+
+
+
+
 
 
 
