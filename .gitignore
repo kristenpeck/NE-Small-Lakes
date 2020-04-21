@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-.xlsx
-.docx
-.png
+*.xlsx
+*.docx
+*.png
+SmallLakesDB-copy.xlsx
