@@ -372,17 +372,21 @@ no.wt$pred.m.upr <- back.trans[,3]
 
 lk.catch2019.temp <- lk.catch2019 %>% 
   full_join(no.wt)
-# note: this is not a beautiful way of doing this, since it duplicates for other masses that were measured but have the same value. 
+# note: this is not a beautiful way of doing this, since it duplicates predicted weights 
+#   for other weights that were measured but have the same value. 
 
 
 
-#inspecting outliers:
-ggplot(data=lk.catch2019) +
-  geom_point(aes(x=fl, y=m, col=mat),  size=4)+
-  geom_smooth(aes(x=fl, y=m), method="lm")+
-  ggtitle(lk.catch2019$lake)+
-  scale_x_continuous(breaks = seq(100,600,50))+
-  scale_y_continuous(breaks = seq(0,1500,100))
+
+
+
+# #inspecting outliers:
+# ggplot(data=lk.catch2019) +
+#   geom_point(aes(x=fl, y=m, col=mat),  size=4)+
+#   geom_smooth(aes(x=fl, y=m), method="lm")+
+#   ggtitle(lk.catch2019$lake)+
+#   scale_x_continuous(breaks = seq(100,600,50))+
+#   scale_y_continuous(breaks = seq(0,1500,100))
 
 #length-weight plot
 ggplot(data=lk.catch2019) +
