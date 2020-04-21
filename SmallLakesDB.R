@@ -213,21 +213,7 @@ mapview(lk.net.lines.select, zcol="nettype",lwd=2, legend=T,map.types="Esri.Worl
         color = c("gray50","white"))
 
 
-
-#### Pete ####
-
-lk.catch2019 <- catch2019 %>% 
-  filter(lake %in% "Pete") %>% 
-  filter(!is.na(ageid))
-  
-lk.catch2019
-
-ggplot(data=lk.catch2019) +
-  geom_histogram(aes(x=fl, fill=mat), colour = "black", binwidth= 10)+
-  ggtitle(lk.catch2019$lake)
-
-
-### facet plots, env ####
+### Figure ENV, facet plots ####
 
 lk.env2019 <- env %>% 
   mutate(year = year(date)) %>% 
@@ -243,10 +229,33 @@ Figure.env <- ggplot(data=lk.env2019)+
   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value, na.rm=T),
                                           max(lk.env2019$value, na.rm=T),1))+
   scale_colour_manual(values=c("black", "gray60"),
-                      name = "",labels = c("Dis. Oxygen (mg/L)","Temp. (deg C)"))+
+                      name = "",labels = c("Diss. Oxygen (mg/L)","Temp. (deg C)"))+
   facet_wrap(~lake, ncol=2)+
   theme_bw()
 Figure.env
+
+
+
+#### FL frequency, coloured by Maturity ####
+
+lk.catch2019 <- catch2019 %>% 
+  #filter(lake %in% "Pete") %>% 
+  filter(!is.na(ageid))
+  
+lk.catch2019
+
+Figure.FL.mat <- ggplot(data=catch2019) +
+  geom_histogram(aes(x=fl, fill=mat), colour = "black", binwidth= 50)+
+  facet_wrap(~lake)+
+  scale_y_continuous(breaks = seq(0,100,10))+
+  labs(x="Fork Length (mm)", y="Frequency", fill="Maturity")+
+  theme_bw()
+Figure.FL.mat
+ 
+#double-check that IM and ST are not mixed up at Chunamun
+#also need to download the photos from Chunamun still
+
+
 
 
 # #### Pete env 
@@ -284,28 +293,28 @@ ggplot(data=lk.catch2019) +
   geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
   ggtitle(lk.catch2019$lake)
 
-#### Chun env ####
-str(env)
-lk.env2019 <- env %>% 
-  mutate(year = year(date)) %>% 
-  filter(year %in% 2019) %>% 
-  filter(lake %in% "Chunamun") %>% 
-  gather("var","value",tempdown, -dodown, -conddown)
-
-str(lk.env2019)
-
-ggplot(data=lk.env2019)+
-  geom_path(aes(x=value, y=depthdown, colour=var), size=2)+
-  scale_y_reverse(name= "Depth (m)", 
-                  breaks=seq(min(lk.env2019$depthdown),
-                             max(lk.env2019$depthdown),1))+
-  scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value,na.rm=T),
-                                          max(lk.env2019$value,na.rm=T),0.2))+
-  scale_colour_manual(values=c("black"),
-                      name = "",labels = c("Temp. deg C"))+
-  ggtitle(lk.env2019$lake)
-
-(ave.cond <- mean(lk.env2019$conddown, na.rm=T))
+# #### Chun env ####
+# str(env)
+# lk.env2019 <- env %>% 
+#   mutate(year = year(date)) %>% 
+#   filter(year %in% 2019) %>% 
+#   filter(lake %in% "Chunamun") %>% 
+#   gather("var","value",tempdown, -dodown, -conddown)
+# 
+# str(lk.env2019)
+# 
+# ggplot(data=lk.env2019)+
+#   geom_path(aes(x=value, y=depthdown, colour=var), size=2)+
+#   scale_y_reverse(name= "Depth (m)", 
+#                   breaks=seq(min(lk.env2019$depthdown),
+#                              max(lk.env2019$depthdown),1))+
+#   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value,na.rm=T),
+#                                           max(lk.env2019$value,na.rm=T),0.2))+
+#   scale_colour_manual(values=c("black"),
+#                       name = "",labels = c("Temp. deg C"))+
+#   ggtitle(lk.env2019$lake)
+# 
+# (ave.cond <- mean(lk.env2019$conddown, na.rm=T))
 
 
 #### Sundance ####
@@ -322,11 +331,12 @@ ggplot(data=lk.catch2019) +
 
 
 
-#### Quality ####
+#### length-weight relationships ####
 
 lk.catch2019 <- catch2019 %>% 
-  filter(lake %in% "Quality") %>% 
-  filter(sp %in% "RB")
+  filter(lake %in% "Chunamun") %>% 
+  filter(sp %in% "RB") %>% 
+  mutate(logm = log10(m),logL = log10(fl))
 str(lk.catch2019)
 
 
@@ -340,43 +350,55 @@ ggplot(data=lk.catch2019) +
   geom_histogram(aes(x=k, fill=fl.cat), colour = "black", binwidth= 0.05)+
   ggtitle(lk.catch2019$lake)
 
+fit1 <- lm(logm~logL, data=lk.catch2019)
+summary(fit1)
+
+#inspecting outliers:
+ggplot(data=lk.catch2019) +
+  geom_point(aes(x=fl, y=m, col=mat),  size=4)+
+  geom_smooth(aes(x=fl, y=m), method="lm")+
+  ggtitle(lk.catch2019$lake)+
+  scale_x_continuous(breaks = seq(100,600,50))+
+  scale_y_continuous(breaks = seq(0,1500,100))
+
 #length-weight plot
 ggplot(data=lk.catch2019) +
-  geom_point(aes(x=fl, y=m), colour = "black", size=4)+
-  #geom_smooth(aes(x=fl, y=m), method="lm")+
+  geom_point(aes(x=logL, y=logm, col=mat),  size=4)+
+  geom_smooth(aes(x=logL, y=logm), method="lm")+
   ggtitle(lk.catch2019$lake)
+
+#predict weights of fish who didn't have a weight
+
 
 
 
 #### Quality env ####
 
-str(env)
-lk.env2019 <- env %>% 
-  mutate(year = year(date)) %>% 
-  filter(year %in% 2019) %>% 
-  filter(lake %in% "Quality") %>% 
-  gather("var","value",tempdown, dodown, -conddown)
+# str(env)
+# lk.env2019 <- env %>% 
+#   mutate(year = year(date)) %>% 
+#   filter(year %in% 2019) %>% 
+#   filter(lake %in% "Quality") %>% 
+#   gather("var","value",tempdown, dodown, -conddown)
+# 
+# str(lk.env2019)
+# 
+# qual.env.plot <- ggplot(data=lk.env2019)+
+#   geom_line(aes(x=value, y=depthdown, colour=var), size=2)+
+#   scale_y_reverse(name= "Depth (m)", 
+#                   breaks=seq(min(lk.env2019$depthdown),
+#                              max(lk.env2019$depthdown),1))+
+#   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value),
+#                                           max(lk.env2019$value),1))+
+#   scale_colour_manual(values=c("gray40","black"),
+#                         name = "",labels = c("DO mg/L","Temp. deg C"))+
+#   ggtitle(paste(lk.env2019$lake, "Lake"))
+# qual.env.plot
+# ggsave(qual.env.plot, filename = "qual.env.plot2019.png", dpi = 300)
+# 
+# (ave.cond <- mean(lk.env2019$conddown, na.rm=T))
 
-str(lk.env2019)
 
-qual.env.plot <- ggplot(data=lk.env2019)+
-  geom_line(aes(x=value, y=depthdown, colour=var), size=2)+
-  scale_y_reverse(name= "Depth (m)", 
-                  breaks=seq(min(lk.env2019$depthdown),
-                             max(lk.env2019$depthdown),1))+
-  scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value),
-                                          max(lk.env2019$value),1))+
-  scale_colour_manual(values=c("gray40","black"),
-                        name = "",labels = c("DO mg/L","Temp. deg C"))+
-  ggtitle(paste(lk.env2019$lake, "Lake"))
-qual.env.plot
-ggsave(qual.env.plot, filename = "qual.env.plot2019.png", dpi = 300)
-
-(ave.cond <- mean(lk.env2019$conddown, na.rm=T))
-
-lk.env2019 %>% 
-  filter(depthdown %in% 2) %>% 
-  select(conddown)
 
 #### Boulder: ####
 
