@@ -26,24 +26,25 @@ str(catch)
 env <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Enviro", na = "NA")
 str(env)
 
+yr.select <- c(2019)
 
-effort2019 <- effort %>% 
-  filter(year %in% 2019)
+effort.selectyr <- effort %>% 
+  filter(year %in% yr.select)
 
-catch2019 <- catch %>% 
+catch.selectyr <- catch %>% 
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
                                        Trophy=550, 1000), use.names=T)) %>% 
   mutate(k = (100000*m)/fl^3) %>% 
-  filter(year %in% 2019) %>% 
+  filter(year %in% yr.select) %>% 
   arrange(sp)
 
-catch2019$catchID <- 1:nrow(catch2019)
+catch.selectyr$catchID <- 1:nrow(catch.selectyr)
 
-catch.effort2019 <- full_join(effort2019, catch2019, by=c("lake", "year", "effortid"))
+catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake", "year", "effortid"))
 
 #### Table 1 - net set, CPUE ####
 
-str(catch.effort2019)
+str(catch.effort.selectyr)
 
 #### CPUE ####
 
@@ -56,22 +57,23 @@ str(catch.effort2019)
 # CPUE
 
 
-Table1 <- catch.effort2019 %>% 
+Table1 <- catch.effort.selectyr %>% 
   filter(sp %in% c("RB","EB")) %>% 
   group_by(lake,nettype) %>% 
-  summarise(`Soak Time (hrs)`=unique(efforthr), 
+  summarise(`Soak Time (hrs)`=unique(efforthr), Year=unique(year),
             `Species`=paste(unique(sp), collapse=","), `# caught` = length(unique(catchID)),
             CPUE = round(length(unique(catchID))/unique(efforthr),2),
             `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
             `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
-            `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) 
+            `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
+  arrange(Year)
 Table1
 
 
 
 # table -old
 
-table.fish <- ddply(catch2019, ~lake, summarize,
+table.fish <- ddply(catch.selectyr, ~lake, summarize,
                     `#caught` = length(sp),
                     `% not sterile` = 
                       round(length(which(mat %in% c("M","MT","SP")))/
@@ -96,23 +98,25 @@ table.fish
 
 
 
-str(effort2019)
+str(effort.selectyr)
 
-locations.easting <- effort2019 %>% 
+locations.easting <- effort.selectyr %>% 
   select(lake, nettype, starteast, endeast) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
   select(lake, nettype, startend, UTME=value)
 
-locations.northing <- effort2019 %>% 
+locations.northing <- effort.selectyr %>% 
   select(lake, nettype, startnorth, endnorth) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
   select(lake, nettype, startend, UTMN=value)
 
 
-(locations <- full_join(locations.easting, locations.northing, by=c("lake", "nettype", "startend")))
-
+(locations <- locations.easting %>% 
+    full_join(locations.northing, by=c("lake", "nettype", "startend")) %>% 
+    filter(!is.na(UTME)))
+#no coords for Heart or Stewart
 
 # Figure 1 - overview map: ####
 
@@ -122,7 +126,7 @@ locations.lk <- locations %>%
            crs = 3157)
 
 lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenStreetMap") %>% 
-  addStaticLabels(label = locations.lk$lake,
+  leafem::addStaticLabels(label = locations.lk$lake,
                   noHide = F,
                   direction = 'top',
                   textOnly = TRUE,
@@ -239,12 +243,12 @@ Figure.env
 
 #### FL frequency, by Maturity ####
 
-lk.catch2019 <- catch2019 %>% 
+lk.catch.selectyr <- catch.selectyr %>% 
   filter(!is.na(ageid))
   
-lk.catch2019
+lk.catch.selectyr
 
-Figure.FL.mat <- ggplot(data=catch2019) +
+Figure.FL.mat <- ggplot(data=catch.selectyr) +
   geom_histogram(aes(x=fl, fill=mat), colour = "black", binwidth= 50)+
   facet_wrap(~lake)+
   scale_y_continuous(breaks = seq(0,100,10))+
@@ -261,10 +265,10 @@ Figure.FL.mat
 #### FL frequency, by stock type ####
 #categories defined at top
 
-stock.catch2019 <- catch2019 %>% 
+stock.catch.selectyr <- catch.selectyr %>% 
   filter(sp %in% "RB")
 
-ggplot(data=stock.catch2019) +
+ggplot(data=stock.catch.selectyr) +
   geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
   facet_wrap(~lake)+
   labs(y="Frequency", x="Fork Length (mm)", fill="Category")+
@@ -274,30 +278,30 @@ ggplot(data=stock.catch2019) +
 
 #### length-weight relationships ####
 
-lk.catch2019 <- catch2019 %>% 
+lk.catch.selectyr <- catch.selectyr %>% 
   filter(lake %in% "Chunamun") %>% 
   filter(sp %in% "RB") %>% 
   mutate(logm = log10(m),logL = log10(fl))
-str(lk.catch2019)
+str(lk.catch.selectyr)
 
 
 #length-frequency plot
-ggplot(data=lk.catch2019) +
+ggplot(data=lk.catch.selectyr) +
   geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
-  ggtitle(lk.catch2019$lake)
+  ggtitle(lk.catch.selectyr$lake)
 
 #condition-frequency plot
-ggplot(data=lk.catch2019) +
+ggplot(data=lk.catch.selectyr) +
   geom_histogram(aes(x=k, fill=fl.cat), colour = "black", binwidth= 0.05)+
-  ggtitle(lk.catch2019$lake)
+  ggtitle(lk.catch.selectyr$lake)
 
-fit1 <- lm(logm~logL, data=lk.catch2019)
+fit1 <- lm(logm~logL, data=lk.catch.selectyr)
 summary(fit1)
 
 residPlot(fit1)
 #predict weights of fish who didn't have a weight
 
-no.wt <- lk.catch2019 %>% 
+no.wt <- lk.catch.selectyr %>% 
   filter(!is.na(fl)) %>% 
   filter(is.na(m)) %>% 
   select(fl,logL)
@@ -310,7 +314,7 @@ no.wt$pred.m <- back.trans[,1]
 no.wt$pred.m.lwr <- back.trans[,2]
 no.wt$pred.m.upr <- back.trans[,3]
 
-lk.catch2019.temp <- lk.catch2019 %>% 
+lk.catch.selectyr.temp <- lk.catch.selectyr %>% 
   full_join(no.wt)
 # note: this is not a beautiful way of doing this, since it duplicates predicted weights 
 #   for other weights that were measured but have the same value. 
@@ -318,10 +322,10 @@ lk.catch2019.temp <- lk.catch2019 %>%
 
 
 #length-weight plot - most recent year
-ggplot(data=lk.catch2019) +
+ggplot(data=lk.catch.selectyr) +
   geom_point(aes(x=logL, y=logm, col=mat),  size=4)+
   geom_smooth(aes(x=logL, y=logm), method="lm")+
-  ggtitle(paste(lk.catch2019$lake,"Lake,",lk.catch2019$year))
+  ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))
 
 
 # compare different years of data for a given lake
@@ -329,6 +333,7 @@ str(catch)
 lake.select <- "Chunamun"
 
 unique(catch$lake)
+
 lake.temp <- catch %>% 
   filter(lake %in% lake.select)
 sampled.yrs <- unique(lake.temp$year)
@@ -336,11 +341,13 @@ sampled.yrs[length(sampled.yrs)-1]
 
 
 lk.catch.prev <- catch %>% 
-  filter(lake %in% lake) %>% 
+  filter(lake %in% lake.select) %>% 
   filter(year %in% c(sampled.yrs[length(sampled.yrs)-1],sampled.yrs[length(sampled.yrs)])) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(sp %in% "RB") %>% 
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(logm = log10(m),logL = log10(fl))
+lk.catch.prev
 
 #length-weight plot - compare years
 
@@ -353,46 +360,24 @@ Figure.FLwt.compare <- ggplot() +
 Figure.FLwt.compare
 
 fit2 <- lm(logm~logL*yearF, data=lk.catch.prev)
-summary(fit2)
 
 car::Anova(fit2)
 
 
-#### Quality env ####
-
-# str(env)
-# lk.env2019 <- env %>% 
-#   mutate(year = year(date)) %>% 
-#   filter(year %in% 2019) %>% 
-#   filter(lake %in% "Quality") %>% 
-#   gather("var","value",tempdown, dodown, -conddown)
-# 
-# str(lk.env2019)
-# 
-# qual.env.plot <- ggplot(data=lk.env2019)+
-#   geom_line(aes(x=value, y=depthdown, colour=var), size=2)+
-#   scale_y_reverse(name= "Depth (m)", 
-#                   breaks=seq(min(lk.env2019$depthdown),
-#                              max(lk.env2019$depthdown),1))+
-#   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value),
-#                                           max(lk.env2019$value),1))+
-#   scale_colour_manual(values=c("gray40","black"),
-#                         name = "",labels = c("DO mg/L","Temp. deg C"))+
-#   ggtitle(paste(lk.env2019$lake, "Lake"))
-# qual.env.plot
-# ggsave(qual.env.plot, filename = "qual.env.plot2019.png", dpi = 300)
-# 
-# (ave.cond <- mean(lk.env2019$conddown, na.rm=T))
 
 
 
-#### Boulder: ####
 
-lk.catch2019 <- catch2019 %>% 
-  filter(lake %in% "Boulder") %>% 
-  filter(sp %in% "RB")
 
-ggplot(data=lk.catch2019) +
-  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
-  ggtitle(lk.catch2019$lake)
+
+
+
+
+
+
+
+
+
+
+
 
