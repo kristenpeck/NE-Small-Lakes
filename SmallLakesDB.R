@@ -17,7 +17,7 @@ library(sf)
 library(mapview)
 library(bcdata)
 library(reshape2)
-library(leaflet)
+library(car)
 
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort)
@@ -47,13 +47,13 @@ str(catch.effort2019)
 
 #### CPUE ####
 
-soaktime <- ddply(effort2019,~lake, summarize, soak.time = sum(efforthr))
-tot.catch <- ddply(catch2019,~lake, summarize, tot.catch = length(sp))
-
-CPUE <- soaktime %>% 
-  full_join(tot.catch) %>% 
-  mutate(cpue = round(tot.catch/soak.time,2))
-CPUE
+# soaktime <- ddply(effort2019,~lake, summarize, soak.time = sum(efforthr))
+# tot.catch <- ddply(catch2019,~lake, summarize, tot.catch = length(sp))
+# 
+# CPUE <- soaktime %>% 
+#   full_join(tot.catch) %>% 
+#   mutate(cpue = round(tot.catch/soak.time,2))
+# CPUE
 
 
 Table1 <- catch.effort2019 %>% 
@@ -234,13 +234,12 @@ Figure.env <- ggplot(data=lk.env2019)+
   facet_wrap(~lake, ncol=2)+
   theme_bw()
 Figure.env
+# NOTE: no environmental data taken from Sundance in 2019
 
 
-
-#### FL frequency, coloured by Maturity ####
+#### FL frequency, by Maturity ####
 
 lk.catch2019 <- catch2019 %>% 
-  #filter(lake %in% "Pete") %>% 
   filter(!is.na(ageid))
   
 lk.catch2019
@@ -259,76 +258,17 @@ Figure.FL.mat
 
 
 
-# #### Pete env 
-# str(env)
-# lk.env2019 <- env %>% 
-#   mutate(year = year(date)) %>% 
-#   filter(year %in% 2019) %>% 
-#   filter(lake %in% "Pete") %>% 
-#   gather("var","value",tempdown, -dodown, -conddown)
-# 
-# str(lk.env2019)
-# 
-# ggplot(data=lk.env2019)+
-#   geom_path(aes(x=value, y=depthdown, colour=var), size=2)+
-#   scale_y_reverse(name= "Depth (m)", 
-#                   breaks=seq(min(lk.env2019$depthdown),
-#                              max(lk.env2019$depthdown),1))+
-#   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value, na.rm=T),
-#                                           max(lk.env2019$value, na.rm=T),1))+
-#   scale_colour_manual(values=c("black"),
-#                       name = "",labels = c("Temp. deg C"))+
-#   ggtitle(lk.env2019$lake)
-# 
-# (ave.cond <- mean(lk.env2019$conddown, na.rm=T))
+#### FL frequency, by stock type ####
+#categories defined at top
 
-
-
-#### Chunamun ####
-
-lk.catch2019 <- catch2019 %>% 
-  filter(lake %in% "Chunamun") %>% 
+stock.catch2019 <- catch2019 %>% 
   filter(sp %in% "RB")
 
-ggplot(data=lk.catch2019) +
+ggplot(data=stock.catch2019) +
   geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
-  ggtitle(lk.catch2019$lake)
-
-# #### Chun env ####
-# str(env)
-# lk.env2019 <- env %>% 
-#   mutate(year = year(date)) %>% 
-#   filter(year %in% 2019) %>% 
-#   filter(lake %in% "Chunamun") %>% 
-#   gather("var","value",tempdown, -dodown, -conddown)
-# 
-# str(lk.env2019)
-# 
-# ggplot(data=lk.env2019)+
-#   geom_path(aes(x=value, y=depthdown, colour=var), size=2)+
-#   scale_y_reverse(name= "Depth (m)", 
-#                   breaks=seq(min(lk.env2019$depthdown),
-#                              max(lk.env2019$depthdown),1))+
-#   scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value,na.rm=T),
-#                                           max(lk.env2019$value,na.rm=T),0.2))+
-#   scale_colour_manual(values=c("black"),
-#                       name = "",labels = c("Temp. deg C"))+
-#   ggtitle(lk.env2019$lake)
-# 
-# (ave.cond <- mean(lk.env2019$conddown, na.rm=T))
-
-
-#### Sundance ####
-
-lk.catch2019 <- catch2019 %>% 
-  filter(lake %in% "Sundance") %>% 
-  filter(sp %in% "RB")
-
-ggplot(data=lk.catch2019) +
-  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
-  ggtitle(lk.catch2019$lake)
-
-# NOTE: no environmental data taken from Sundance in 2019
+  facet_wrap(~lake)+
+  labs(y="Frequency", x="Fork Length (mm)", fill="Category")+
+  theme_bw()
 
 
 
@@ -377,29 +317,45 @@ lk.catch2019.temp <- lk.catch2019 %>%
 
 
 
-
-
-
-# #inspecting outliers:
-# ggplot(data=lk.catch2019) +
-#   geom_point(aes(x=fl, y=m, col=mat),  size=4)+
-#   geom_smooth(aes(x=fl, y=m), method="lm")+
-#   ggtitle(lk.catch2019$lake)+
-#   scale_x_continuous(breaks = seq(100,600,50))+
-#   scale_y_continuous(breaks = seq(0,1500,100))
-
-#length-weight plot
+#length-weight plot - most recent year
 ggplot(data=lk.catch2019) +
   geom_point(aes(x=logL, y=logm, col=mat),  size=4)+
   geom_smooth(aes(x=logL, y=logm), method="lm")+
-  ggtitle(lk.catch2019$lake)
+  ggtitle(paste(lk.catch2019$lake,"Lake,",lk.catch2019$year))
 
 
+# compare different years of data for a given lake
+str(catch)
+lake.select <- "Chunamun"
+
+unique(catch$lake)
+lake.temp <- catch %>% 
+  filter(lake %in% lake.select)
+sampled.yrs <- unique(lake.temp$year)
+sampled.yrs[length(sampled.yrs)-1]
 
 
+lk.catch.prev <- catch %>% 
+  filter(lake %in% lake) %>% 
+  filter(year %in% c(sampled.yrs[length(sampled.yrs)-1],sampled.yrs[length(sampled.yrs)])) %>% 
+  mutate(yearF = as.factor(year)) %>% 
+  filter(sp %in% "RB") %>% 
+  mutate(logm = log10(m),logL = log10(fl))
 
+#length-weight plot - compare years
 
+Figure.FLwt.compare <- ggplot() +
+  geom_point(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.5, size=4)+
+  geom_smooth(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF), method="lm")+
+  scale_colour_manual(values=c("black","blue"))+
+  labs(title=lk.catch.prev$lake, x= "log10 Fork Length", y="log10 Mass", colour="Year")+
+  theme_bw()
+Figure.FLwt.compare
 
+fit2 <- lm(logm~logL*yearF, data=lk.catch.prev)
+summary(fit2)
+
+car::Anova(fit2)
 
 
 #### Quality env ####
