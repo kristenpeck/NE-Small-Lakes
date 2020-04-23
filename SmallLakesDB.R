@@ -26,6 +26,8 @@ str(catch)
 env <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Enviro", na = "NA")
 str(env)
 
+#### Select Year ####
+
 yr.select <- c(2019)
 
 effort.selectyr <- effort %>% 
@@ -328,15 +330,17 @@ ggplot(data=lk.catch.selectyr) +
   ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))
 
 
-# compare different years of data for a given lake
+#### length-weight compare years for a given lake ####
 str(catch)
-lake.select <- "Chunamun"
+lake.select <- "Pete"
 
 unique(catch$lake)
 
 lake.temp <- catch %>% 
-  filter(lake %in% lake.select)
-sampled.yrs <- unique(lake.temp$year)
+  filter(lake %in% lake.select) %>% 
+  arrange(year)
+(sampled.yrs <- unique(lake.temp$year))
+
 sampled.yrs[length(sampled.yrs)-1]
 
 
@@ -352,7 +356,7 @@ lk.catch.prev
 #length-weight plot - compare years
 
 Figure.FLwt.compare <- ggplot() +
-  geom_point(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.5, size=4)+
+  geom_point(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
   geom_smooth(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF), method="lm")+
   scale_colour_manual(values=c("black","blue"))+
   labs(title=lk.catch.prev$lake, x= "log10 Fork Length", y="log10 Mass", colour="Year")+
