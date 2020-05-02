@@ -21,7 +21,11 @@ library(car)
 
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort)
-catch <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Catch", na = "NA")
+catch <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Catch", na = "NA", 
+                    col_types = c("guess","guess","guess","guess","guess",
+                                  "guess","guess","guess","guess","guess",
+                                  "guess","numeric","text","text", "guess",
+                                  "guess","guess"))
 str(catch)
 env <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Enviro", na = "NA")
 str(env)
@@ -35,7 +39,7 @@ effort.selectyr <- effort %>%
 
 catch.selectyr <- catch %>% 
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
-                                       Trophy=550, 1000), use.names=T)) %>% 
+                                       Trophy=550, 1000), use.names=T)) %>% #PSD from Paul Askeys rapid assessment tool
   mutate(k = (100000*m)/fl^3) %>% 
   filter(year %in% yr.select) %>% 
   arrange(sp)
@@ -62,7 +66,7 @@ str(catch.effort.selectyr)
 Table1 <- catch.effort.selectyr %>% 
   filter(sp %in% c("RB","EB")) %>% 
   group_by(lake,nettype) %>% 
-  summarise(`Soak Time (hrs)`=unique(efforthr), Year=unique(year),
+  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), Year=unique(year),
             `Species`=paste(unique(sp), collapse=","), `# caught` = length(unique(catchID)),
             CPUE = round(length(unique(catchID))/unique(efforthr),2),
             `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
@@ -70,7 +74,6 @@ Table1 <- catch.effort.selectyr %>%
             `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
   arrange(Year)
 Table1
-
 
 
 # table -old
@@ -133,8 +136,8 @@ lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenS
                   direction = 'top',
                   textOnly = TRUE,
                   textsize = "20px")
-  
-print(lk.overview.map)
+
+print(lk.overview.map) #not showing at the moment?
 
 
 
@@ -245,17 +248,23 @@ Figure.env
 
 #### FL frequency, by Maturity ####
 
-lk.catch.selectyr <- catch.selectyr %>% 
-  filter(!is.na(ageid))
-  
-lk.catch.selectyr
+# lk.catch.selectyr <- catch.selectyr %>% 
+#   filter(!is.na(ageid))
+#   
+# lk.catch.selectyr
+
+str(catch.selectyr)
+catch.selectyr <- catch.selectyr %>% 
+  mutate(mat2 = ifelse(mat == "IM"|mat == "ST", "IM/ST", mat)) #in cases where IM was confused with ST, combined
+
 
 Figure.FL.mat <- ggplot(data=catch.selectyr) +
-  geom_histogram(aes(x=fl, fill=mat), colour = "black", binwidth= 50)+
+  geom_histogram(aes(x=fl, fill=mat2), colour = "black", binwidth= 50)+
   facet_wrap(~lake)+
   scale_y_continuous(breaks = seq(0,100,10))+
   labs(x="Fork Length (mm)", y="Frequency", fill="Maturity")+
   theme_bw()
+
 Figure.FL.mat
  
 #double-check that IM and ST are not mixed up at Chunamun
@@ -276,31 +285,33 @@ ggplot(data=stock.catch.selectyr) +
   labs(y="Frequency", x="Fork Length (mm)", fill="Category")+
   theme_bw()
 
+#condition-frequency plot
+ggplot(data=catch.selectyr) +
+  geom_histogram(aes(x=k, fill=fl.cat), colour = "black", binwidth= 0.05)+
+  geom_vline(xintercept = 1, linetype="dashed")+
+  facet_wrap(~lake)+
+  labs(y="Frequency", x="Fulton's k", fill="Category")+
+  theme_bw()
 
 
-#### length-weight relationships ####
+
+
+
+#### Lk-specific: length-weight relationships ####
 
 lk.catch.selectyr <- catch.selectyr %>% 
-  filter(lake %in% "Chunamun") %>% 
+  filter(lake %in% "Quality") %>% 
   filter(sp %in% "RB") %>% 
   mutate(logm = log10(m),logL = log10(fl))
 str(lk.catch.selectyr)
 
 
-#length-frequency plot
-ggplot(data=lk.catch.selectyr) +
-  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
-  ggtitle(lk.catch.selectyr$lake)
-
-#condition-frequency plot
-ggplot(data=lk.catch.selectyr) +
-  geom_histogram(aes(x=k, fill=fl.cat), colour = "black", binwidth= 0.05)+
-  ggtitle(lk.catch.selectyr$lake)
-
 fit1 <- lm(logm~logL, data=lk.catch.selectyr)
 summary(fit1)
 
-residPlot(fit1)
+residPlot(fit1) #check for length-wt outliers in residual plot
+
+
 #predict weights of fish who didn't have a weight
 
 no.wt <- lk.catch.selectyr %>% 
@@ -308,7 +319,7 @@ no.wt <- lk.catch.selectyr %>%
   filter(is.na(m)) %>% 
   select(fl,logL)
 
-pred.logwt <- predict(fit1, no.wt, interval ="prediction")
+pred.logwt <- predict(fit1, no.wt, interval ="prediction") #this is predicting individual fish weights, not average
 cf <- logbtcf(fit1, 10)
 back.trans <- cf*10^pred.logwt
 
@@ -324,17 +335,25 @@ lk.catch.selectyr.temp <- lk.catch.selectyr %>%
 
 
 #length-weight plot - most recent year
+ggplot(data=lk.catch.selectyr[which(lk.catch.selectyr$mat2 %in% "IM/ST"),]) +
+  geom_point(aes(x=fl, y=m, col=mat2, shape=mat2), size=4)+
+  geom_smooth(aes(x=fl, y=m), method="lm")+
+  ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))+
+  theme_bw()
+
 ggplot(data=lk.catch.selectyr) +
-  geom_point(aes(x=logL, y=logm, col=mat),  size=4)+
+  geom_point(aes(x=logL, y=logm, col=mat2, shape=mat2), size=4)+
   geom_smooth(aes(x=logL, y=logm), method="lm")+
-  ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))
+  ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))+
+  theme_bw()
 
 
 #### length-weight compare years for a given lake ####
 str(catch)
-lake.select <- "Pete"
-
 unique(catch$lake)
+
+lake.select <- "Quality"
+
 
 lake.temp <- catch %>% 
   filter(lake %in% lake.select) %>% 
@@ -350,16 +369,22 @@ lk.catch.prev <- catch %>%
   mutate(yearF = as.factor(year)) %>% 
   filter(sp %in% "RB") %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
-  mutate(logm = log10(m),logL = log10(fl))
-lk.catch.prev
+  mutate(logm = log10(m),logL = log10(fl)) %>% 
+  arrange(yearF)
+
 
 #length-weight plot - compare years
 
 Figure.FLwt.compare <- ggplot() +
   geom_point(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
   geom_smooth(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF), method="lm")+
-  scale_colour_manual(values=c("black","blue"))+
-  labs(title=lk.catch.prev$lake, x= "log10 Fork Length", y="log10 Mass", colour="Year")+
+  scale_colour_manual(name="Year",
+                      labels = c(unique(lk.catch.prev$year)[1],unique(lk.catch.prev$year)[2]), 
+                      values=c("black","blue"))+
+  scale_shape_manual(name="Year",
+                      labels = c(unique(lk.catch.prev$year)[1],unique(lk.catch.prev$year)[2]),
+                     values=c(17, 19))+
+  labs(title=lk.catch.prev$lake, x= "log10 Fork Length", y="log10 Mass")+
   theme_bw()
 Figure.FLwt.compare
 
@@ -368,8 +393,71 @@ fit2 <- lm(logm~logL*yearF, data=lk.catch.prev)
 car::Anova(fit2)
 
 
+# Perhaps next, backtransform and label the slope and exponent on figure?
 
 
+#Next:
+
+# - length at age
+# - von B plot
+# 
+
+#### length at age ####
+
+lk.select <- "Heart"
+yr.select <- c("2017","2018","2019")
+
+lake.temp <- catch %>% 
+  filter(lake %in% lk.select) %>% 
+  arrange(year)
+(sampled.yrs <- unique(lake.temp$year))
+
+sampled.yrs[length(sampled.yrs)-1]
+
+unique(catch$age)
+catch.ages.lk <- catch %>% 
+  filter(sp %in% c("RB","EB")) %>% 
+  filter(lake %in% lk.select) %>% 
+  filter(year %in% yr.select) %>% 
+  mutate(age.num = ifelse(age %in% c(1,2,3,4,5,6,7,8,9,10),as.numeric(age),NA)) %>% 
+  mutate(age.plus = ifelse(age %in% c("1+","2+","3+","4+","5+","6+"), as.numeric(substr(age,1,1))+1)) %>% 
+  mutate(broodyear = ifelse(!is.na(age.num),year-age.num, broodyear)) %>% 
+  mutate(broodyear = ifelse(!is.na(age.plus),year-age.plus, broodyear))
+catch.ages.lk
+
+str(catch)
+
+ggplot(data=catch.ages.lk)+
+  geom_point(aes(x=age.plus, y=fl))+
+  ggtitle(catch.ages.lk$lake)
+
+
+
+#take a lok at proportional size dstribution again with Gabelhouse rules
+rb.cuts <- psdVal("Rainbow Trout")
+
+catch.psd <- catch %>% 
+  mutate(fl.cat = lencat(fl, breaks= rb.cuts, use.names=T, drop.levels = T)) %>% 
+  filter(sp %in% "RB") %>% 
+  filter(fl >= rb.cuts["stock"])
+range(catch.psd$fl)
+
+headtail(catch.psd)
+
+(psd.freq <- xtabs(~fl.cat, data=catch.psd))
+
+lk.select <- "Inga"
+yr.select <- c("2017","2018","2019")
+
+catch.psd.lkyr <- catch %>% 
+  mutate(fl.cat = lencat(fl, breaks= rb.cuts, use.names=T, drop.levels = T)) %>% 
+  filter(sp %in% "RB") %>% 
+  filter(fl >= rb.cuts["stock"]) %>% 
+  filter(lake %in% lk.select) %>% 
+  filter(year %in% yr.select)
+
+(psd.freq.lk <- xtabs(~fl.cat, data=catch.psd.lkyr))
+(psd.lk <- prop.table(psd.freq.lk)*100 )
 
 
 
