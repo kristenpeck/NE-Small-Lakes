@@ -32,7 +32,7 @@ str(env)
 
 #### Select Year ####
 
-yr.select <- c(2019)
+yr.select <- c(2017)
 
 effort.selectyr <- effort %>% 
   filter(year %in% yr.select)
@@ -65,14 +65,14 @@ str(catch.effort.selectyr)
 
 Table1 <- catch.effort.selectyr %>% 
   filter(sp %in% c("RB","EB")) %>% 
-  group_by(lake,nettype) %>% 
-  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), Year=unique(year),
-            `Species`=paste(unique(sp), collapse=","), `# caught` = length(unique(catchID)),
-            CPUE = round(length(unique(catchID))/unique(efforthr),2),
-            `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
-            `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
-            `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
-  arrange(Year)
+  dplyr::group_by(lake,effortid, nettype) %>% 
+  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), `Net Type`=unique(nettype) , 
+                   Year=unique(year),`Species`=paste(unique(sp), collapse=","),`# caught` = length(unique(catchID)),
+                   CPUE = round(length(unique(catchID))/unique(efforthr),2),
+                   `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
+                   `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
+                   `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
+  dplyr::arrange(Year)
 Table1
 
 
@@ -121,7 +121,7 @@ locations.northing <- effort.selectyr %>%
 (locations <- locations.easting %>% 
     full_join(locations.northing, by=c("lake", "nettype", "startend")) %>% 
     filter(!is.na(UTME)))
-#no coords for Heart or Stewart
+#no coords for Heart or Stewart, 2018
 
 # Figure 1 - overview map: ####
 
@@ -141,7 +141,7 @@ print(lk.overview.map) #not showing at the moment?
 
 
 
-#### Appendix: gillnets locations: ####
+#### Appendix: gillnets locations 2019: ####
 
 indiv.nets <- locations %>% 
   filter(lake %in% c("Boulder","Chunamun","Pete","Quality","Sundance"))
@@ -404,8 +404,9 @@ car::Anova(fit2)
 
 #### length at age ####
 
-lk.select <- "Heart"
+lk.select <- "Boot"
 yr.select <- c("2017","2018","2019")
+
 
 lake.temp <- catch %>% 
   filter(lake %in% lk.select) %>% 
@@ -419,21 +420,24 @@ catch.ages.lk <- catch %>%
   filter(sp %in% c("RB","EB")) %>% 
   filter(lake %in% lk.select) %>% 
   filter(year %in% yr.select) %>% 
-  mutate(age.num = ifelse(age %in% c(1,2,3,4,5,6,7,8,9,10),as.numeric(age),NA)) %>% 
-  mutate(age.plus = ifelse(age %in% c("1+","2+","3+","4+","5+","6+"), as.numeric(substr(age,1,1))+1)) %>% 
-  mutate(broodyear = ifelse(!is.na(age.num),year-age.num, broodyear)) %>% 
-  mutate(broodyear = ifelse(!is.na(age.plus),year-age.plus, broodyear))
+  mutate(age.num = as.numeric(substr(age,1,1))) %>% 
+  mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA))
 catch.ages.lk
+
 
 str(catch)
 
 ggplot(data=catch.ages.lk)+
-  geom_point(aes(x=age.plus, y=fl))+
-  ggtitle(catch.ages.lk$lake)
+  geom_point(aes(x=age.num, y=fl))+
+  ggtitle(catch.ages.lk$lake, catch.ages.lk$year)
 
 
 
-#take a lok at proportional size dstribution again with Gabelhouse rules
+
+
+
+
+#take a look at proportional size dstribution again with Gabelhouse rules
 rb.cuts <- psdVal("Rainbow Trout")
 
 catch.psd <- catch %>% 
@@ -446,11 +450,12 @@ headtail(catch.psd)
 
 (psd.freq <- xtabs(~fl.cat, data=catch.psd))
 
-lk.select <- "Inga"
+rb.cuts2 <- c(Sub_stock=0,Stock=200, Quality=400, Trophy=550, Over=1000)
+lk.select <- "Boot"
 yr.select <- c("2017","2018","2019")
 
 catch.psd.lkyr <- catch %>% 
-  mutate(fl.cat = lencat(fl, breaks= rb.cuts, use.names=T, drop.levels = T)) %>% 
+  mutate(fl.cat = lencat(fl, breaks= rb.cuts2, use.names=T, drop.levels = T)) %>% 
   filter(sp %in% "RB") %>% 
   filter(fl >= rb.cuts["stock"]) %>% 
   filter(lake %in% lk.select) %>% 
