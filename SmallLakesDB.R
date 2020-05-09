@@ -52,17 +52,6 @@ catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake",
 
 str(catch.effort.selectyr)
 
-#### CPUE ####
-
-# soaktime <- ddply(effort2019,~lake, summarize, soak.time = sum(efforthr))
-# tot.catch <- ddply(catch2019,~lake, summarize, tot.catch = length(sp))
-# 
-# CPUE <- soaktime %>% 
-#   full_join(tot.catch) %>% 
-#   mutate(cpue = round(tot.catch/soak.time,2))
-# CPUE
-
-
 Table1 <- catch.effort.selectyr %>% 
   filter(sp %in% c("RB","EB")) %>% 
   dplyr::group_by(lake,effortid, nettype) %>% 
@@ -105,23 +94,28 @@ table.fish
 
 str(effort.selectyr)
 
+
 locations.easting <- effort.selectyr %>% 
-  select(lake, nettype, starteast, endeast) %>% 
+  mutate(effortidF = as.factor(effortid)) %>% 
+  select(lake, nettype, effortidF, starteast, endeast) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
-  select(lake, nettype, startend, UTME=value)
+  select(lake, nettype, effortidF, startend, UTME=value)
 
 locations.northing <- effort.selectyr %>% 
-  select(lake, nettype, startnorth, endnorth) %>% 
+  mutate(effortidF = as.factor(effortid)) %>% 
+  select(lake, nettype, effortidF, startnorth, endnorth) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
-  select(lake, nettype, startend, UTMN=value)
+  select(lake, nettype, effortidF, startend, UTMN=value)
 
 
 (locations <- locations.easting %>% 
-    full_join(locations.northing, by=c("lake", "nettype", "startend")) %>% 
+    full_join(locations.northing, by=c("lake", "nettype", "effortidF","startend")) %>% 
     filter(!is.na(UTME)))
-#no coords for Heart or Stewart, 2018
+str(locations)
+
+#no coords for Heart or Stewart, 2018; Inga 2017
 
 # Figure 1 - overview map: ####
 
@@ -136,15 +130,15 @@ lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenS
                   direction = 'top',
                   textOnly = TRUE,
                   textsize = "20px")
-
-print(lk.overview.map) #not showing at the moment?
+x11()
+print(lk.overview.map) #not printing??
 
 
 
 #### Appendix: gillnets locations 2019: ####
 
 indiv.nets <- locations %>% 
-  filter(lake %in% c("Boulder","Chunamun","Pete","Quality","Sundance"))
+  filter(lake %in% c("Moose"))
 
 indiv.nets.st <- st_as_sf(indiv.nets, 
                    coords = c("UTME", "UTMN"), 
@@ -175,22 +169,26 @@ lks.albers <- st_transform(indiv.nets.st, crs=3005)
 #   collect()
 
 net.lines<- lks.albers %>% 
+  dplyr::group_by(lake, effortidF) %>% 
+  dplyr::summarize() %>% 
+  st_cast("LINESTRING") # this suddenly is not working?? To work on later...
+    
+net.lines<- lks.albers %>% 
+  filter(effortidF %in% c("1","2")) %>% 
   group_by(lake, nettype) %>% 
-  summarize() %>% 
-  st_cast("LINESTRING")
+  dplyr::summarize() %>% 
+  st_cast("LINESTRING") 
+plot(net.lines)
 
-# ggplot()+
-#   geom_sf(data=bc, fill="white")+
-#   geom_sf(data=Peace, fill="tan")+
-#   geom_sf(data=lks.mapping, col="blue")+
-#   geom_sf(data=lks.albers, size=2)
-
-
-
+      # ggplot()+
+      #   geom_sf(data=bc, fill="white")+
+      #   geom_sf(data=Peace, fill="tan")+
+      #   geom_sf(data=lks.mapping, col="blue")+
+      #   geom_sf(data=lks.albers, size=2)
 
 # Appendix - plot nets at individual lakes
 
-lake.select <- "Quality"
+lake.select <- "One Island"
 
 
 lk.nets.select <- lks.albers %>% 
@@ -227,7 +225,7 @@ mapview(lk.net.lines.select, zcol="nettype",lwd=2, legend=T,map.types="Esri.Worl
 
 lk.env2019 <- env %>% 
   mutate(year = year(date)) %>% 
-  filter(year %in% 2019) %>% 
+  filter(year %in% 2017) %>% 
   gather("var","value",tempdown, dodown, -conddown)
 
 
@@ -255,7 +253,7 @@ Figure.env
 
 str(catch.selectyr)
 catch.selectyr <- catch.selectyr %>% 
-  mutate(mat2 = ifelse(mat == "IM"|mat == "ST", "IM/ST", mat)) #in cases where IM was confused with ST, combined
+  mutate(mat2 = ifelse(mat == "IM"|mat == "ST"|mat == "af3n", "IM/ST", mat)) #in cases where IM was confused with ST, combined
 
 
 Figure.FL.mat <- ggplot(data=catch.selectyr) +
@@ -300,7 +298,7 @@ ggplot(data=catch.selectyr) +
 #### Lk-specific: length-weight relationships ####
 
 lk.catch.selectyr <- catch.selectyr %>% 
-  filter(lake %in% "Quality") %>% 
+  filter(lake %in% "Boot") %>% 
   filter(sp %in% "RB") %>% 
   mutate(logm = log10(m),logL = log10(fl))
 str(lk.catch.selectyr)
@@ -337,7 +335,7 @@ lk.catch.selectyr.temp <- lk.catch.selectyr %>%
 #length-weight plot - most recent year
 ggplot(data=lk.catch.selectyr[which(lk.catch.selectyr$mat2 %in% "IM/ST"),]) +
   geom_point(aes(x=fl, y=m, col=mat2, shape=mat2), size=4)+
-  geom_smooth(aes(x=fl, y=m), method="lm")+
+  geom_smooth(aes(x=fl, y=m), method="loess")+
   ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))+
   theme_bw()
 
@@ -352,11 +350,12 @@ ggplot(data=lk.catch.selectyr) +
 str(catch)
 unique(catch$lake)
 
-lake.select <- "Quality"
+lake.select <- "Boot"
 
 
 lake.temp <- catch %>% 
   filter(lake %in% lake.select) %>% 
+  filter(surveytype %in% "gillnet") %>% 
   arrange(year)
 (sampled.yrs <- unique(lake.temp$year))
 
@@ -365,32 +364,81 @@ sampled.yrs[length(sampled.yrs)-1]
 
 lk.catch.prev <- catch %>% 
   filter(lake %in% lake.select) %>% 
-  filter(year %in% c(sampled.yrs[length(sampled.yrs)-1],sampled.yrs[length(sampled.yrs)])) %>% 
+  filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
   mutate(yearF = as.factor(year)) %>% 
-  filter(sp %in% "RB") %>% 
+  filter(sp %in% c("RB","EB")) %>% 
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+  mutate(logm = log10(m),logL = log10(fl)) %>% 
+  arrange(yearF)
+
+lk.catch.prev.rb <- catch %>% 
+  filter(lake %in% lake.select, sp %in% "RB") %>% 
+  filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
+  mutate(yearF = as.factor(year)) %>% 
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+  mutate(logm = log10(m),logL = log10(fl)) %>% 
+  arrange(yearF)
+
+lk.catch.prev.eb <- catch %>% 
+  filter(lake %in% lake.select, sp %in% "EB") %>% 
+  filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
+  mutate(yearF = as.factor(year)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 
 
-#length-weight plot - compare years
+#length-weight plot - compare years (generic)
 
 Figure.FLwt.compare <- ggplot() +
   geom_point(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
   geom_smooth(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF), method="lm")+
   scale_colour_manual(name="Year",
                       labels = c(unique(lk.catch.prev$year)[1],unique(lk.catch.prev$year)[2]), 
-                      values=c("black","blue"))+
+                      values=c("black","purple"))+
   scale_shape_manual(name="Year",
                       labels = c(unique(lk.catch.prev$year)[1],unique(lk.catch.prev$year)[2]),
                      values=c(17, 19))+
+  facet_wrap(~sp)+
   labs(title=lk.catch.prev$lake, x= "log10 Fork Length", y="log10 Mass")+
   theme_bw()
 Figure.FLwt.compare
 
-fit2 <- lm(logm~logL*yearF, data=lk.catch.prev)
+#rainbows only
+Figure.FLwt.compare.rb <- ggplot() +
+  geom_point(data=lk.catch.prev.rb, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
+  geom_smooth(data=lk.catch.prev.rb, aes(x=logL, y=logm, col=yearF), method="lm")+
+  scale_colour_manual(name="Year",
+                      labels = c(unique(lk.catch.prev.rb$year)[1],unique(lk.catch.prev.rb$year)[2]), 
+                      values=c("black","blue"))+
+  scale_shape_manual(name="Year",
+                     labels = c(unique(lk.catch.prev.rb$year)[1],unique(lk.catch.prev.rb$year)[2]),
+                     values=c(17, 19))+
+  labs(title=paste(lk.catch.prev.rb$lake,"RB"), x= "log10 Fork Length", y="log10 Mass")+
+  theme_bw()
+Figure.FLwt.compare.rb
 
-car::Anova(fit2)
+fit2.rb <- lm(logm~logL*yearF, data=lk.catch.prev.rb)
+car::Anova(fit2.rb)
+
+#brookies only
+Figure.FLwt.compare.eb <- ggplot() +
+  geom_point(data=lk.catch.prev.eb, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
+  geom_smooth(data=lk.catch.prev.eb, aes(x=logL, y=logm, col=yearF), method="lm")+
+  scale_colour_manual(name="Year",
+                      labels = c(unique(lk.catch.prev.eb$year)[1],unique(lk.catch.prev.eb$year)[2]), 
+                      values=c("black","blue"))+
+  scale_shape_manual(name="Year",
+                     labels = c(unique(lk.catch.prev.eb$year)[1],unique(lk.catch.prev.eb$year)[2]),
+                     values=c(17, 19))+
+  labs(title=paste(lk.catch.prev$lake, "EB"), x= "log10 Fork Length", y="log10 Mass")+
+  theme_bw()
+Figure.FLwt.compare.eb
+
+
+fit2.eb <- lm(logm~logL*yearF, data=lk.catch.prev.eb)
+
+car::Anova(fit2.eb) #note, if interaction is present then that should be interpreted before year effect
 
 
 # Perhaps next, backtransform and label the slope and exponent on figure?
