@@ -26,85 +26,45 @@ catch <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Catch", na = "NA",
                                   "guess","guess","guess","guess","guess",
                                   "guess","numeric","text","text", "guess",
                                   "guess","guess"))
+catch <- catch %>% 
+  mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
+                                       Trophy=550, 1000), use.names=T)) %>% #PSD from Paul Askeys rapid assessment tool
+  mutate(k = (100000*m)/fl^3, 
+         mat2 = ifelse(mat == "IM"|mat == "ST"|mat == "af3n", "IM/ST", mat),
+         logm = log10(m),logL = log10(fl)) %>% #in cases where IM was confused with ST, combined
+  arrange(sp)
+catch$catchID <- 1:nrow(catch)
+
 str(catch)
+
+
 env <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Enviro", na = "NA")
 str(env)
 
-#### Select Year ####
+#### Select Year-Effort ####
 
 yr.select <- c(2017)
 
 effort.selectyr <- effort %>% 
   filter(year %in% yr.select)
 
-catch.selectyr <- catch %>% 
-  mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
-                                       Trophy=550, 1000), use.names=T)) %>% #PSD from Paul Askeys rapid assessment tool
-  mutate(k = (100000*m)/fl^3) %>% 
-  filter(year %in% yr.select) %>% 
-  arrange(sp)
-
-catch.selectyr$catchID <- 1:nrow(catch.selectyr)
-
-catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake", "year", "effortid"))
-
-#### Table 1 - net set, CPUE ####
-
-str(catch.effort.selectyr)
-
-Table1 <- catch.effort.selectyr %>% 
-  filter(sp %in% c("RB","EB")) %>% 
-  dplyr::group_by(lake,effortid, nettype) %>% 
-  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), `Net Type`=unique(nettype) , 
-                   Year=unique(year),`Species`=paste(unique(sp), collapse=","),`# caught` = length(unique(catchID)),
-                   CPUE = round(length(unique(catchID))/unique(efforthr),2),
-                   `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
-                   `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
-                   `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
-  dplyr::arrange(Year)
-Table1
-
-
-# table -old
-
-table.fish <- ddply(catch.selectyr, ~lake, summarize,
-                    `#caught` = length(sp),
-                    `% not sterile` = 
-                      round(length(which(mat %in% c("M","MT","SP")))/
-                      length(which(!is.na(mat))),2)*100,
-                    #totalfl.checked = length(which(!is.na(fl))),
-                    #totalm.checked = length(which(!is.na(m))),
-                    `mean FL (mm)` = round(mean(fl, na.rm=T),2),
-                    `min FL (mm)` = round(min(fl, na.rm=T),2),
-                    `max FL (mm)` = round(max(fl, na.rm=T),2),
-                    `mean mass (g)` = round(mean(m, na.rm=T),2),
-                    `min mass (g)` = round(min(m, na.rm=T),2),
-                    `max mass (g)` = round(max(m, na.rm=T),2),
-                    `mean k` = round(mean(k, na.rm=T),2),
-                    `min k` = round(min(k, na.rm=T),2),
-                    `max k` = round(max(k, na.rm=T),2))
-
-table.fish
-
-#write.csv(table.fish, file = "table.fish.csv",row.names = F)
-
 #### Maps ####
-
 
 
 str(effort.selectyr)
 
+#need to put start and end coordinates in same columns, then re-project
 
 locations.easting <- effort.selectyr %>% 
   mutate(effortidF = as.factor(effortid)) %>% 
-  select(lake, nettype, effortidF, starteast, endeast) %>% 
+  dplyr::select(lake, nettype, effortidF, starteast, endeast) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
   select(lake, nettype, effortidF, startend, UTME=value)
 
 locations.northing <- effort.selectyr %>% 
   mutate(effortidF = as.factor(effortid)) %>% 
-  select(lake, nettype, effortidF, startnorth, endnorth) %>% 
+  dplyr::select(lake, nettype, effortidF, startnorth, endnorth) %>% 
   melt() %>% 
   mutate(startend = ifelse(grepl("start",variable),yes = "start",no="end")) %>% 
   select(lake, nettype, effortidF, startend, UTMN=value)
@@ -114,6 +74,7 @@ locations.northing <- effort.selectyr %>%
     full_join(locations.northing, by=c("lake", "nettype", "effortidF","startend")) %>% 
     filter(!is.na(UTME)))
 str(locations)
+
 
 #no coords for Heart or Stewart, 2018; Inga 2017
 
@@ -130,15 +91,19 @@ lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenS
                   direction = 'top',
                   textOnly = TRUE,
                   textsize = "20px")
-x11()
-print(lk.overview.map) #not printing??
+
+print(lk.overview.map) #not printing?? *** TO FIX ****
 
 
 
-#### Appendix: gillnets locations 2019: ####
+#### Appendix: gillnets maps 2019: ####
+
+unique(locations.lk$lake)
+
+lk.select <- "Moose"
 
 indiv.nets <- locations %>% 
-  filter(lake %in% c("Moose"))
+  filter(lake %in% lk.select)
 
 indiv.nets.st <- st_as_sf(indiv.nets, 
                    coords = c("UTME", "UTMN"), 
@@ -147,7 +112,7 @@ indiv.nets.st <- st_as_sf(indiv.nets,
 lks.albers <- st_transform(indiv.nets.st, crs=3005)
 
 
-#overviewmap alternative - did not use because ugly
+#overview map alternative - did not use because ugly
 
 # bc <- bcdc_query_geodata('7-5m-provinces-and-states-the-atlas-of-canada-base-maps-for-bc') %>% 
 #   filter(ENGLISH_NAME == 'British Columbia') %>% 
@@ -188,14 +153,13 @@ plot(net.lines)
 
 # Appendix - plot nets at individual lakes
 
-lake.select <- "One Island"
-
+lk.select <- "One Island"
 
 lk.nets.select <- lks.albers %>% 
-  filter(lake %in% lake.select)
+  filter(lake %in% lk.select)
 
 lk.net.lines.select <- net.lines %>% 
-  filter(lake %in% lake.select)
+  filter(lake %in% lk.select)
 
 #could not get a good enough basemap so did not use the following:
 # lks.outline.select <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
@@ -221,40 +185,112 @@ mapview(lk.net.lines.select, zcol="nettype",lwd=2, legend=T,map.types="Esri.Worl
         color = c("gray50","white"))
 
 
-### Figure ENV, facet plots ####
 
-lk.env2019 <- env %>% 
+
+
+
+
+
+
+### CTD profiles ####
+
+yr.select <- 2017
+
+env.selectyr <- env %>% 
   mutate(year = year(date)) %>% 
-  filter(year %in% 2017) %>% 
+  filter(year %in% yr.select) %>% 
   gather("var","value",tempdown, dodown, -conddown)
 
 
-Figure.env <- ggplot(data=lk.env2019)+
+Figure.env <- ggplot(data=env.selectyr)+
   geom_path(aes(x=value, y=depthdown, colour=var), size=1.5)+
   scale_y_reverse(name= "Depth (m)", 
-                  breaks=seq(min(lk.env2019$depthdown, na.rm=T),
-                             max(lk.env2019$depthdown, na.rm=T),1))+
-  scale_x_continuous(name = "",breaks=seq(min(lk.env2019$value, na.rm=T),
-                                          max(lk.env2019$value, na.rm=T),1))+
+                  breaks=seq(min(env.selectyr$depthdown, na.rm=T),
+                             max(env.selectyr$depthdown, na.rm=T),1))+
+  scale_x_continuous(name = "",breaks=seq(min(env.selectyr$value, na.rm=T),
+                                          max(env.selectyr$value, na.rm=T),1))+
   scale_colour_manual(values=c("black", "gray60"),
                       name = "",labels = c("Diss. Oxygen (mg/L)","Temp. (deg C)"))+
   facet_wrap(~lake, ncol=2)+
   theme_bw()
 Figure.env
-# NOTE: no environmental data taken from Sundance in 2019
+
+# NOTE: no environmental data taken from:
+  # 2017 - Moose, Inga, One Island, Sundance
+  # 2018 - all measured!
+  # 2019 - Sundance
 
 
-#### FL frequency, by Maturity ####
 
-# lk.catch.selectyr <- catch.selectyr %>% 
-#   filter(!is.na(ageid))
-#   
-# lk.catch.selectyr
+
+
+
+
+
+
+
+
+
+
+#### Select Year-catch ####
+yr.select <- 2017
+
+catch.selectyr <- catch %>% 
+  filter(year %in% yr.select) 
+
+effort.selectyr <- effort %>% 
+  filter(year %in% yr.select)
+
+catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake", "year", "effortid"))
+
+
+
+#### Tables - CPUE, demographics ####
+
+str(catch.effort.selectyr)
+
+Table1 <- catch.effort.selectyr %>% 
+  filter(sp %in% c("RB","EB")) %>% 
+  dplyr::group_by(lake,effortid, nettype) %>% 
+  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), `Net Type`=unique(nettype) , 
+                   Year=unique(year),`Species`=paste(unique(sp), collapse=","),`# caught` = length(unique(catchID)),
+                   CPUE = round(length(unique(catchID))/unique(efforthr),2),
+                   `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
+                   `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
+                   `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
+  dplyr::arrange(Year)
+Table1
+
+
+# table - demographics
+
+table.fish <- ddply(catch.selectyr, ~lake, summarize,
+                    `#caught` = length(sp),
+                    `% not sterile` = 
+                      round(length(which(mat %in% c("M","MT","SP")))/
+                              length(which(!is.na(mat))),2)*100,
+                    #totalfl.checked = length(which(!is.na(fl))),
+                    #totalm.checked = length(which(!is.na(m))),
+                    `mean FL (mm)` = round(mean(fl, na.rm=T),2),
+                    `min FL (mm)` = round(min(fl, na.rm=T),2),
+                    `max FL (mm)` = round(max(fl, na.rm=T),2),
+                    `mean mass (g)` = round(mean(m, na.rm=T),2),
+                    `min mass (g)` = round(min(m, na.rm=T),2),
+                    `max mass (g)` = round(max(m, na.rm=T),2),
+                    `mean k` = round(mean(k, na.rm=T),2),
+                    `min k` = round(min(k, na.rm=T),2),
+                    `max k` = round(max(k, na.rm=T),2))
+
+table.fish
+
+#write.csv(table.fish, file = "table.fish.csv",row.names = F)
+
+
+
+
+#### FL frequency, by maturity or species ####
 
 str(catch.selectyr)
-catch.selectyr <- catch.selectyr %>% 
-  mutate(mat2 = ifelse(mat == "IM"|mat == "ST"|mat == "af3n", "IM/ST", mat)) #in cases where IM was confused with ST, combined
-
 
 Figure.FL.mat <- ggplot(data=catch.selectyr) +
   geom_histogram(aes(x=fl, fill=mat2), colour = "black", binwidth= 50)+
@@ -263,28 +299,48 @@ Figure.FL.mat <- ggplot(data=catch.selectyr) +
   labs(x="Fork Length (mm)", y="Frequency", fill="Maturity")+
   theme_bw()
 
-Figure.FL.mat
+Figure.FL.mat #note this puts species together
  
-#double-check that IM and ST are not mixed up at Chunamun
+
+# specfic lake, by species 
+
+unique(catch.selectyr$year)
+unique(catch.selectyr$lake)
+
+lk.select = "Boot"
+
+catch.selectyrlk <- catch.selectyr %>% 
+  filter(lake %in% lk.select) 
+
+unique(catch.selectyrlk$sp)
+
+Figure.FL.sp <- ggplot(data=catch.selectyrlk) +
+  geom_histogram(aes(x=fl, fill=sp), colour="black", binwidth= 10)+
+  facet_wrap(~sp, ncol=1)+
+  scale_y_continuous(breaks = seq(0,30,5))+
+  labs(x="Fork Length (mm)", y="Frequency", fill="Species")+
+  theme_bw()
+
+Figure.FL.sp
+
 #also need to download the photos from Chunamun still
 
 
 
 
-#### FL frequency, by stock type ####
-#categories defined at top
+#### RB FL frequency, by stock category ####
 
-stock.catch.selectyr <- catch.selectyr %>% 
+RB.catch.selectyr <- catch.selectyr %>% 
   filter(sp %in% "RB")
 
-ggplot(data=stock.catch.selectyr) +
-  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 10)+
+ggplot(data=RB.catch.selectyr) +
+  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 20)+
   facet_wrap(~lake)+
   labs(y="Frequency", x="Fork Length (mm)", fill="Category")+
   theme_bw()
 
 #condition-frequency plot
-ggplot(data=catch.selectyr) +
+ggplot(data=RB.catch.selectyr) +
   geom_histogram(aes(x=k, fill=fl.cat), colour = "black", binwidth= 0.05)+
   geom_vline(xintercept = 1, linetype="dashed")+
   facet_wrap(~lake)+
@@ -296,23 +352,25 @@ ggplot(data=catch.selectyr) +
 
 
 #### Lk-specific: length-weight relationships ####
+unique(catch.selectyr$year)
+unique(catch.selectyr$lake)
+lk.select = "Moose"
 
-lk.catch.selectyr <- catch.selectyr %>% 
-  filter(lake %in% "Boot") %>% 
-  filter(sp %in% "RB") %>% 
-  mutate(logm = log10(m),logL = log10(fl))
-str(lk.catch.selectyr)
+RB.catch.selectyrlk <- catch.selectyr %>% 
+  filter(lake %in% lk.select) %>% 
+  filter(sp %in% "RB")
+str(RB.catch.selectyrlk)
 
 
-fit1 <- lm(logm~logL, data=lk.catch.selectyr)
+fit1 <- lm(logm~logL, data=RB.catch.selectyrlk)
 summary(fit1)
 
 residPlot(fit1) #check for length-wt outliers in residual plot
 
 
-#predict weights of fish who didn't have a weight
+### predicted weights ####
 
-no.wt <- lk.catch.selectyr %>% 
+no.wt <- RB.catch.selectyrlk %>% 
   filter(!is.na(fl)) %>% 
   filter(is.na(m)) %>% 
   select(fl,logL)
@@ -325,36 +383,49 @@ no.wt$pred.m <- back.trans[,1]
 no.wt$pred.m.lwr <- back.trans[,2]
 no.wt$pred.m.upr <- back.trans[,3]
 
-lk.catch.selectyr.temp <- lk.catch.selectyr %>% 
+RB.catch.selectyrlk.temp <- RB.catch.selectyrlk %>% 
   full_join(no.wt)
 # note: this is not a beautiful way of doing this, since it duplicates predicted weights 
 #   for other weights that were measured but have the same value. 
 
 
 
+#### Select Year-catch ####
+yr.select <- 2017
+lk.select = "Boot"
+
+catch.selectyrlk <- catch %>% 
+  filter(year %in% yr.select) %>% 
+  filter(lake %in% lk.select) %>% 
+  filter(sp %in% c("RB","EB"))
+
+
+
 #length-weight plot - most recent year
-ggplot(data=lk.catch.selectyr[which(lk.catch.selectyr$mat2 %in% "IM/ST"),]) +
-  geom_point(aes(x=fl, y=m, col=mat2, shape=mat2), size=4)+
+ggplot(data=catch.selectyrlk[which(catch.selectyrlk$mat2 %in% "IM/ST"),]) +
+  geom_point(aes(x=fl, y=m, col=mat2, shape=mat2), alpha=0.5, size=4)+
   geom_smooth(aes(x=fl, y=m), method="loess")+
-  ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))+
+  facet_wrap(~sp)+
+  ggtitle(paste(catch.selectyrlk$lake,"Lake,",catch.selectyrlk$year))+
   theme_bw()
 
-ggplot(data=lk.catch.selectyr) +
+ggplot(data=catch.selectyrlk) +
   geom_point(aes(x=logL, y=logm, col=mat2, shape=mat2), size=4)+
   geom_smooth(aes(x=logL, y=logm), method="lm")+
-  ggtitle(paste(lk.catch.selectyr$lake,"Lake,",lk.catch.selectyr$year))+
+  facet_wrap(~sp)+
+  ggtitle(paste(catch.selectyrlk$lake,"Lake,",catch.selectyrlk$year))+
   theme_bw()
 
 
-#### length-weight compare years for a given lake ####
+#### length-weight compare years ####
 str(catch)
 unique(catch$lake)
 
-lake.select <- "Boot"
+lk.select <- "Boot"
 
 
 lake.temp <- catch %>% 
-  filter(lake %in% lake.select) %>% 
+  filter(lake %in% lk.select) %>% 
   filter(surveytype %in% "gillnet") %>% 
   arrange(year)
 (sampled.yrs <- unique(lake.temp$year))
@@ -363,7 +434,7 @@ sampled.yrs[length(sampled.yrs)-1]
 
 
 lk.catch.prev <- catch %>% 
-  filter(lake %in% lake.select) %>% 
+  filter(lake %in% lk.select) %>% 
   filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(sp %in% c("RB","EB")) %>% 
@@ -372,7 +443,7 @@ lk.catch.prev <- catch %>%
   arrange(yearF)
 
 lk.catch.prev.rb <- catch %>% 
-  filter(lake %in% lake.select, sp %in% "RB") %>% 
+  filter(lake %in% lk.select, sp %in% "RB") %>% 
   filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
@@ -380,7 +451,7 @@ lk.catch.prev.rb <- catch %>%
   arrange(yearF)
 
 lk.catch.prev.eb <- catch %>% 
-  filter(lake %in% lake.select, sp %in% "EB") %>% 
+  filter(lake %in% lk.select, sp %in% "EB") %>% 
   filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
@@ -456,12 +527,13 @@ lk.select <- "Boot"
 yr.select <- c("2017","2018","2019")
 
 
-lake.temp <- catch %>% 
-  filter(lake %in% lk.select) %>% 
-  arrange(year)
-(sampled.yrs <- unique(lake.temp$year))
-
-sampled.yrs[length(sampled.yrs)-1]
+# lake.temp <- catch %>% 
+#   filter(lake %in% lk.select) %>% 
+#   filter(year %in% yr.select) %>% 
+#   arrange(year)
+# (sampled.yrs <- unique(lake.temp$year))
+# 
+# sampled.yrs[length(sampled.yrs)-1]
 
 unique(catch$age)
 catch.ages.lk <- catch %>% 
@@ -471,13 +543,17 @@ catch.ages.lk <- catch %>%
   mutate(age.num = as.numeric(substr(age,1,1))) %>% 
   mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA))
 catch.ages.lk
+catch.ages.lk$broodyear
 
 
-str(catch)
 
 ggplot(data=catch.ages.lk)+
   geom_point(aes(x=age.num, y=fl))+
+  geom_smooth(aes(x=age.num, y=fl),method = "lm")+
   ggtitle(catch.ages.lk$lake, catch.ages.lk$year)
+
+
+
 
 
 
