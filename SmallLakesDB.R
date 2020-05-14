@@ -26,6 +26,7 @@ catch <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Catch", na = "NA",
                                   "guess","guess","guess","guess","guess",
                                   "guess","numeric","text","text", "guess",
                                   "guess","guess"))
+
 catch <- catch %>% 
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
                                        Trophy=550, 1000), use.names=T)) %>% #PSD from Paul Askeys rapid assessment tool
@@ -33,6 +34,8 @@ catch <- catch %>%
          mat2 = ifelse(mat == "IM"|mat == "ST"|mat == "af3n", "IM/ST", mat),
          logm = log10(m),logL = log10(fl)) %>% #in cases where IM was confused with ST, combined
   arrange(sp)
+
+
 catch$catchID <- 1:nrow(catch)
 
 str(catch)
@@ -93,7 +96,6 @@ lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenS
                   textsize = "20px")
 
 print(lk.overview.map) #not printing?? *** TO FIX ****
-
 
 
 #### Appendix: gillnets maps 2019: ####
@@ -227,10 +229,63 @@ Figure.env
 
 
 
+#### Select Year-catch ####
+yr.select <- 2017
+
+catch.selectyr <- catch %>% 
+  filter(year %in% yr.select) 
+
+effort.selectyr <- effort %>% 
+  filter(year %in% yr.select)
+
+catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake", "year", "effortid"))
+
+
+
+#### Tables - CPUE, demographics ####
+
+str(catch.effort.selectyr)
+
+Table1 <- catch.effort.selectyr %>% 
+  filter(sp %in% c("RB","EB")) %>% 
+  dplyr::group_by(lake,effortid, nettype) %>% 
+  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), `Net Type`=unique(nettype) , 
+                   Year=unique(year),`Species`=paste(unique(sp), collapse=","),`# caught` = length(unique(catchID)),
+                   CPUE = round(length(unique(catchID))/unique(efforthr),2),
+                   `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
+                   `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
+                   `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
+  dplyr::arrange(Year)
+Table1
+
+
+# table - demographics
+
+table.fish <- ddply(catch.selectyr, ~lake, summarize,
+                    `#caught` = length(sp),
+                    `% not sterile` = 
+                      round(length(which(mat %in% c("M","MT","SP")))/
+                              length(which(!is.na(mat))),2)*100,
+                    #totalfl.checked = length(which(!is.na(fl))),
+                    #totalm.checked = length(which(!is.na(m))),
+                    `mean FL (mm)` = round(mean(fl, na.rm=T),2),
+                    `min FL (mm)` = round(min(fl, na.rm=T),2),
+                    `max FL (mm)` = round(max(fl, na.rm=T),2),
+                    `mean mass (g)` = round(mean(m, na.rm=T),2),
+                    `min mass (g)` = round(min(m, na.rm=T),2),
+                    `max mass (g)` = round(max(m, na.rm=T),2),
+                    `mean k` = round(mean(k, na.rm=T),2),
+                    `min k` = round(min(k, na.rm=T),2),
+                    `max k` = round(max(k, na.rm=T),2))
+
+table.fish
+
+#write.csv(table.fish, file = "table.fish.csv",row.names = F)
 
 
 
 
+#### FL frequency, by maturity or species ####
 
 #### Select Year-catch ####
 yr.select <- 2017
