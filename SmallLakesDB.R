@@ -81,7 +81,7 @@ str(locations)
 
 #no coords for Heart or Stewart, 2018; Inga 2017
 
-# Figure 1 - overview map: ####
+# Figure 1 - overview map: ###
 
 locations.lk <- locations %>% 
   filter(startend %in% "start", nettype %in% "RIC7 SGN") %>% 
@@ -98,7 +98,7 @@ lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenS
 print(lk.overview.map) #not printing?? *** TO FIX ****
 
 
-#### Appendix: gillnets maps 2019: ####
+#### Appendix: gillnets maps 2019: ###
 
 unique(locations.lk$lake)
 
@@ -225,66 +225,6 @@ Figure.env
 
 
 
-
-
-
-
-#### Select Year-catch ####
-yr.select <- 2017
-
-catch.selectyr <- catch %>% 
-  filter(year %in% yr.select) 
-
-effort.selectyr <- effort %>% 
-  filter(year %in% yr.select)
-
-catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake", "year", "effortid"))
-
-
-
-#### Tables - CPUE, demographics ####
-
-str(catch.effort.selectyr)
-
-Table1 <- catch.effort.selectyr %>% 
-  filter(sp %in% c("RB","EB")) %>% 
-  dplyr::group_by(lake,effortid, nettype) %>% 
-  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), `Net Type`=unique(nettype) , 
-                   Year=unique(year),`Species`=paste(unique(sp), collapse=","),`# caught` = length(unique(catchID)),
-                   CPUE = round(length(unique(catchID))/unique(efforthr),2),
-                   `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
-                   `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
-                   `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
-  dplyr::arrange(Year)
-Table1
-
-
-# table - demographics
-
-table.fish <- ddply(catch.selectyr, ~lake, summarize,
-                    `#caught` = length(sp),
-                    `% not sterile` = 
-                      round(length(which(mat %in% c("M","MT","SP")))/
-                              length(which(!is.na(mat))),2)*100,
-                    #totalfl.checked = length(which(!is.na(fl))),
-                    #totalm.checked = length(which(!is.na(m))),
-                    `mean FL (mm)` = round(mean(fl, na.rm=T),2),
-                    `min FL (mm)` = round(min(fl, na.rm=T),2),
-                    `max FL (mm)` = round(max(fl, na.rm=T),2),
-                    `mean mass (g)` = round(mean(m, na.rm=T),2),
-                    `min mass (g)` = round(min(m, na.rm=T),2),
-                    `max mass (g)` = round(max(m, na.rm=T),2),
-                    `mean k` = round(mean(k, na.rm=T),2),
-                    `min k` = round(min(k, na.rm=T),2),
-                    `max k` = round(max(k, na.rm=T),2))
-
-table.fish
-
-#write.csv(table.fish, file = "table.fish.csv",row.names = F)
-
-
-
-
 #### FL frequency, by maturity or species ####
 
 #### Select Year-catch ####
@@ -389,7 +329,7 @@ RB.catch.selectyr <- catch.selectyr %>%
   filter(sp %in% "RB")
 
 ggplot(data=RB.catch.selectyr) +
-  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 20)+
+  geom_histogram(aes(x=fl, fill=fl.cat), colour = "black", binwidth= 30)+
   facet_wrap(~lake)+
   labs(y="Frequency", x="Fork Length (mm)", fill="Category")+
   theme_bw()
@@ -409,7 +349,7 @@ ggplot(data=RB.catch.selectyr) +
 #### Lk-specific: length-weight relationships ####
 unique(catch.selectyr$year)
 unique(catch.selectyr$lake)
-lk.select = "Moose"
+lk.select = "Boot"
 
 RB.catch.selectyrlk <- catch.selectyr %>% 
   filter(lake %in% lk.select) %>% 
@@ -453,7 +393,6 @@ catch.selectyrlk <- catch %>%
   filter(year %in% yr.select) %>% 
   filter(lake %in% lk.select) %>% 
   filter(sp %in% c("RB","EB"))
-
 
 
 #length-weight plot - most recent year
@@ -570,6 +509,9 @@ car::Anova(fit2.eb) #note, if interaction is present then that should be interpr
 # Perhaps next, backtransform and label the slope and exponent on figure?
 
 
+
+
+
 #Next:
 
 # - length at age
@@ -579,33 +521,52 @@ car::Anova(fit2.eb) #note, if interaction is present then that should be interpr
 #### length at age ####
 
 lk.select <- "Boot"
-yr.select <- c("2017","2018","2019")
+yr.select <- c("2017")
 
 
-# lake.temp <- catch %>% 
-#   filter(lake %in% lk.select) %>% 
-#   filter(year %in% yr.select) %>% 
-#   arrange(year)
-# (sampled.yrs <- unique(lake.temp$year))
-# 
-# sampled.yrs[length(sampled.yrs)-1]
+lake.temp <- catch %>% 
+  filter(lake %in% lk.select) %>% 
+  filter(surveytype %in% "gillnet") %>% 
+  arrange(year)
+(sampled.yrs <- unique(lake.temp$year))
+
+sampled.yrs[length(sampled.yrs)-2]
 
 unique(catch$age)
-catch.ages.lk <- catch %>% 
+lk.catch.prev <- catch %>% 
   filter(sp %in% c("RB","EB")) %>% 
   filter(lake %in% lk.select) %>% 
-  filter(year %in% yr.select) %>% 
-  mutate(age.num = as.numeric(substr(age,1,1))) %>% 
-  mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA))
-catch.ages.lk
-catch.ages.lk$broodyear
+  filter(year %in% c(yr.select, sampled.yrs[length(sampled.yrs)-2])) %>% 
+  mutate(age.num = as.numeric(substr(age,1,1)), yearF=as.character(year)) %>% 
+  mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA)) %>% 
+  mutate(lcat10=lencat(fl, w=10))
+lk.catch.prev
+
+headtail(lk.catch.prev)
+
+#predicting ages- previous year:
+ages.lk.catch.prev <- lk.catch.prev %>% 
+  filter(!is.na(age.num), yearF %in% sampled.yrs[length(sampled.yrs)-2])
+
+noages.lk.catch.prev <- lk.catch.prev %>% 
+  filter(is.na(age.num), yearF %in% sampled.yrs[length(sampled.yrs)-2])
+( alk.freq <- xtabs(~lcat10+age.num,data=ages.lk.catch.prev) )
+
+rowSums(alk.freq)
+
+alk <- prop.table(alk.freq,margin=1)
+round(alk,3) 
 
 
 
-ggplot(data=catch.ages.lk)+
-  geom_point(aes(x=age.num, y=fl))+
-  geom_smooth(aes(x=age.num, y=fl),method = "lm")+
-  ggtitle(catch.ages.lk$lake, catch.ages.lk$year)
+
+
+
+ggplot(data=lk.catch.prev)+
+  geom_point(aes(x=age.num, y=fl, col=yearF))+
+  geom_smooth(aes(x=age.num, y=fl, col=yearF),method = "lm")+
+  facet_wrap(~sp)+
+  labs(title=lk.catch.prev$lake, x="Age", y="Fork Length (mm)", colour="Year")
 
 
 
