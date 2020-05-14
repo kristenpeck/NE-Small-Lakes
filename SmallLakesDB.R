@@ -530,43 +530,130 @@ lake.temp <- catch %>%
   arrange(year)
 (sampled.yrs <- unique(lake.temp$year))
 
-sampled.yrs[length(sampled.yrs)-2]
+yr.prev <- sampled.yrs[length(sampled.yrs)-2]
 
-unique(catch$age)
 lk.catch.prev <- catch %>% 
-  filter(sp %in% c("RB","EB")) %>% 
+  filter(sp %in% c("RB", "EB")) %>% 
   filter(lake %in% lk.select) %>% 
-  filter(year %in% c(yr.select, sampled.yrs[length(sampled.yrs)-2])) %>% 
+  filter(surveytype %in% "gillnet") %>% 
+  filter(year %in% c(yr.select, yr.prev)) %>% 
   mutate(age.num = as.numeric(substr(age,1,1)), yearF=as.character(year)) %>% 
   mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA)) %>% 
   mutate(lcat10=lencat(fl, w=10))
 lk.catch.prev
 
-headtail(lk.catch.prev)
+# # # # # # # # # # # 
+#### RB Previous year ###
+# # # # # # # # # # # 
 
-#predicting ages- previous year:
-ages.lk.catch.prev <- lk.catch.prev %>% 
-  filter(!is.na(age.num), yearF %in% sampled.yrs[length(sampled.yrs)-2])
-
-noages.lk.catch.prev <- lk.catch.prev %>% 
-  filter(is.na(age.num), yearF %in% sampled.yrs[length(sampled.yrs)-2])
-( alk.freq <- xtabs(~lcat10+age.num,data=ages.lk.catch.prev) )
-
+## prev.yr aged sample: ##
+RB.ages.lk.catch.prev <- lk.catch.prev %>% 
+  filter(!is.na(age.num), yearF %in% yr.prev, sp %in% "RB")
+## prev.yr unaged sample: ##
+RB.noages.lk.catch.prev <- lk.catch.prev %>% 
+  filter(is.na(age.num), yearF %in% yr.prev, sp %in% "RB")
+## prev.yr compare lencat by age
+( alk.freq <- xtabs(~lcat10+age.num,data=RB.ages.lk.catch.prev) )
 rowSums(alk.freq)
 
 alk <- prop.table(alk.freq,margin=1)
 round(alk,3) 
 
+# prev.yr predict individual ages from unaged sample:
+RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.prev)
+
+# # # # # # # # # # # 
+#### RB Current year ###
+# # # # # # # # # # # 
+
+## current yr aged sample: ##
+RB.ages.lk.catch <- lk.catch.prev %>% 
+  filter(!is.na(age.num), yearF %in% yr.select,  sp %in% "RB")
+## current yr unaged sample: ##
+RB.noages.lk.catch <- lk.catch.prev %>% 
+  filter(is.na(age.num), yearF %in% yr.select,  sp %in% "RB")
+## current yr compare lencat by age
+( alk.freq <- xtabs(~lcat10+age.num,data=RB.ages.lk.catch) )
+rowSums(alk.freq)
+
+alk <- prop.table(alk.freq,margin=1)
+round(alk,3) 
+
+# current yr predict individual ages from unaged sample:
+RB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch)
+
+RB.all <- RB.ages.lk.catch.prev %>% 
+  full_join(RB.noages.lk.catch.prev) %>%
+  full_join(RB.noages.lk.catch) %>%
+  full_join(RB.ages.lk.catch) %>%
+  mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+
+
+
+# # # # # # # # # # # 
+#### EB Previous year ###
+# # # # # # # # # # # 
+
+## prev.yr aged sample: ##
+EB.ages.lk.catch.prev <- lk.catch.prev %>% 
+  filter(!is.na(age.num), yearF %in% yr.prev, sp %in% "EB")
+## prev.yr unaged sample: ##
+EB.noages.lk.catch.prev <- lk.catch.prev %>% 
+  filter(is.na(age.num), yearF %in% yr.prev, sp %in% "EB")
+## prev.yr compare lencat by age
+( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch.prev) )
+rowSums(alk.freq)
+
+alk <- prop.table(alk.freq,margin=1)
+round(alk,3) 
+
+# prev.yr predict individual ages from unaged sample:
+EB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch.prev)
+
+# # # # # # # # # # # 
+#### EB Current year ###
+# # # # # # # # # # # 
+
+## current yr aged sample: ##
+EB.ages.lk.catch <- lk.catch.prev %>% 
+  filter(!is.na(age.num), yearF %in% yr.select,  sp %in% "EB")
+## current yr unaged sample: ##
+EB.noages.lk.catch <- lk.catch.prev %>% 
+  filter(is.na(age.num), yearF %in% yr.select,  sp %in% "EB")
+## current yr compare lencat by age
+( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch) )
+rowSums(alk.freq)
+
+alk <- prop.table(alk.freq,margin=1)
+round(alk,3) 
+
+# current yr predict individual ages from unaged sample:
+EB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch)
+
+EB.all <- EB.ages.lk.catch.prev %>% 
+  full_join(EB.noages.lk.catch.prev) %>%
+  full_join(EB.noages.lk.catch) %>%
+  full_join(EB.ages.lk.catch) %>%
+  mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+
+### Combine RB and EB ###
+
+fish.all <- RB.all %>% 
+  full_join(EB.all)
 
 
 
 
 
-ggplot(data=lk.catch.prev)+
-  geom_point(aes(x=age.num, y=fl, col=yearF))+
-  geom_smooth(aes(x=age.num, y=fl, col=yearF),method = "lm")+
+fish.ages.plot <- ggplot(fish.all)+
+  geom_point(aes(x=age.num, y=fl, col=yearF, shape=aged.predict))+
+  geom_smooth(aes(x=age.num, y=fl, col=yearF), method="lm")+
   facet_wrap(~sp)+
-  labs(title=lk.catch.prev$lake, x="Age", y="Fork Length (mm)", colour="Year")
+  scale_colour_manual(values=c("black", "purple"))+
+  labs(x="Age", y="Fork Length (mm)", shape="aging",colour="Year")+
+  theme_bw()
+
+fish.ages.plot
 
 
 
@@ -577,7 +664,16 @@ ggplot(data=lk.catch.prev)+
 
 
 
-#take a look at proportional size dstribution again with Gabelhouse rules
+
+
+
+
+
+
+
+
+
+#take a look at proportional size distribution again with Gabelhouse rules
 rb.cuts <- psdVal("Rainbow Trout")
 
 catch.psd <- catch %>% 
