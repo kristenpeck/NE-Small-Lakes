@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 *.xlsx
+*.csv
 *.docx
 *.png
 SmallLakesDB-copy.xlsx

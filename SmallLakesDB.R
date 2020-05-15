@@ -238,20 +238,21 @@ effort.selectyr <- effort %>%
 
 catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake", "year", "effortid"))
 
-
-
 #### Tables - CPUE, demographics ####
 
 str(catch.effort.selectyr)
 
 Table1 <- catch.effort.selectyr %>% 
   filter(sp %in% c("RB","EB")) %>% 
-  dplyr::group_by(lake,effortid, nettype) %>% 
+  dplyr::group_by(lake,effortid, nettype, sp) %>% 
   dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), `Net Type`=unique(nettype) , 
                    Year=unique(year),`Species`=paste(unique(sp), collapse=","),`# caught` = length(unique(catchID)),
                    CPUE = round(length(unique(catchID))/unique(efforthr),2),
+                   `FL mean` = mean(fl, na.rm=T),
                    `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
+                   `m mean` = mean(m, na.rm=T),
                    `m range (g)`=paste0(min(m, na.rm=T), "-",max(m, na.rm=T), collapse=","),
+                   `k mean` = mean(k, na.rm=T),
                    `k range`=paste0(round(min(k, na.rm=T),2), "-",round(max(k, na.rm=T),2),collapse=",")) %>% 
   dplyr::arrange(Year)
 Table1
@@ -433,6 +434,7 @@ lk.catch.prev <- catch %>%
   mutate(yearF = as.factor(year)) %>% 
   filter(sp %in% c("RB","EB")) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+       filter(age > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 
@@ -512,11 +514,7 @@ car::Anova(fit2.eb) #note, if interaction is present then that should be interpr
 
 
 
-#Next:
 
-# - length at age
-# - von B plot
-# 
 
 #### length at age ####
 
@@ -537,7 +535,9 @@ lk.catch.prev <- catch %>%
   filter(lake %in% lk.select) %>% 
   filter(surveytype %in% "gillnet") %>% 
   filter(year %in% c(yr.select, yr.prev)) %>% 
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(age.num = as.numeric(substr(age,1,1)), yearF=as.character(year)) %>% 
+  filter(age.num > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
   mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA)) %>% 
   mutate(lcat10=lencat(fl, w=10))
 lk.catch.prev
@@ -551,7 +551,7 @@ RB.ages.lk.catch.prev <- lk.catch.prev %>%
   filter(!is.na(age.num), yearF %in% yr.prev, sp %in% "RB")
 ## prev.yr unaged sample: ##
 RB.noages.lk.catch.prev <- lk.catch.prev %>% 
-  filter(is.na(age.num), yearF %in% yr.prev, sp %in% "RB")
+  filter(is.na(age.num), yearF %in% yr.prev, sp %in% "RB") #note that all Boot samples were aged in 2002, so no need for this
 ## prev.yr compare lencat by age
 ( alk.freq <- xtabs(~lcat10+age.num,data=RB.ages.lk.catch.prev) )
 rowSums(alk.freq)
@@ -559,6 +559,7 @@ rowSums(alk.freq)
 alk <- prop.table(alk.freq,margin=1)
 round(alk,3) 
 
+str(RB.noages.lk.catch.prev)
 # prev.yr predict individual ages from unaged sample:
 RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.prev)
 
@@ -583,8 +584,8 @@ round(alk,3)
 RB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch)
 
 RB.all <- RB.ages.lk.catch.prev %>% 
-  full_join(RB.noages.lk.catch.prev) %>%
-  full_join(RB.noages.lk.catch) %>%
+  #full_join(RB.noages.lk.catch.prev) %>%
+  #full_join(RB.noages.lk.catch) %>%
   full_join(RB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
 
@@ -631,8 +632,8 @@ round(alk,3)
 EB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch)
 
 EB.all <- EB.ages.lk.catch.prev %>% 
-  full_join(EB.noages.lk.catch.prev) %>%
-  full_join(EB.noages.lk.catch) %>%
+  #full_join(EB.noages.lk.catch.prev) %>%
+  #full_join(EB.noages.lk.catch) %>%
   full_join(EB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
 
@@ -643,14 +644,14 @@ fish.all <- RB.all %>%
 
 
 
-
+#shape=aged.predict     shape="aging", #removed because no samples were unaged in Boot 
 
 fish.ages.plot <- ggplot(fish.all)+
-  geom_point(aes(x=age.num, y=fl, col=yearF, shape=aged.predict))+
+  geom_point(aes(x=age.num, y=fl, col=yearF), size=3, alpha=0.6)+
   geom_smooth(aes(x=age.num, y=fl, col=yearF), method="lm")+
   facet_wrap(~sp)+
   scale_colour_manual(values=c("black", "purple"))+
-  labs(x="Age", y="Fork Length (mm)", shape="aging",colour="Year")+
+  labs(x="Age", y="Fork Length (mm)", colour="Year")+
   theme_bw()
 
 fish.ages.plot
