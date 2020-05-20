@@ -102,7 +102,7 @@ print(lk.overview.map) #not printing?? *** TO FIX ****
 
 unique(locations.lk$lake)
 
-lk.select <- "Moose"
+lk.select <- "One Island"
 
 indiv.nets <- locations %>% 
   filter(lake %in% lk.select)
@@ -218,7 +218,7 @@ Figure.env <- ggplot(data=env.selectyr)+
 Figure.env
 
 # NOTE: no environmental data taken from:
-  # 2017 - Moose, Inga, One Island, Sundance
+  # 2017 - Moose, Inga, Sundance
   # 2018 - all measured!
   # 2019 - Sundance
 
@@ -244,10 +244,10 @@ str(catch.effort.selectyr)
 
 Table1 <- catch.effort.selectyr %>% 
   filter(sp %in% c("RB","EB")) %>% 
-  dplyr::group_by(lake,effortid, nettype, sp) %>% 
-  dplyr::summarise(`Soak Time (hrs)`=unique(efforthr), `Net Type`=unique(nettype) , 
+  dplyr::group_by(lake,sp) %>% 
+  dplyr::summarise(`Soak Time (hrs)`=sum(unique(efforthr)), `Net Type`=paste(unique(nettype),collapse=","), 
                    Year=unique(year),`Species`=paste(unique(sp), collapse=","),`# caught` = length(unique(catchID)),
-                   CPUE = round(length(unique(catchID))/unique(efforthr),2),
+                   CPUE = round(length(unique(catchID))/`Soak Time (hrs)`,2),
                    `FL mean` = mean(fl, na.rm=T),
                    `FL range (mm)`=paste0(min(fl, na.rm=T),"-", max(fl, na.rm=T), collapse=","),
                    `m mean` = mean(m, na.rm=T),
@@ -260,7 +260,7 @@ Table1
 
 # table - demographics
 
-table.fish <- ddply(catch.selectyr, ~lake, summarize,
+table.fish <- ddply(catch.selectyr, ~(lake), summarize,
                     `#caught` = length(sp),
                     `% not sterile` = 
                       round(length(which(mat %in% c("M","MT","SP")))/
@@ -303,7 +303,7 @@ Figure.FL.mat #note this puts species together
 unique(catch.selectyr$year)
 unique(catch.selectyr$lake)
 
-lk.select = "Boot"
+lk.select = "One Island"
 
 catch.selectyrlk <- catch.selectyr %>% 
   filter(lake %in% lk.select) 
@@ -313,7 +313,8 @@ unique(catch.selectyrlk$sp)
 Figure.FL.sp <- ggplot(data=catch.selectyrlk) +
   geom_histogram(aes(x=fl, fill=sp), colour="black", binwidth= 10)+
   facet_wrap(~sp, ncol=1)+
-  scale_y_continuous(breaks = seq(0,30,5))+
+  scale_x_continuous(breaks = seq(200,max(catch.selectyrlk$fl),50))+
+  #scale_y_continuous(breaks = seq(0,30,5))+
   labs(x="Fork Length (mm)", y="Frequency", fill="Species")+
   theme_bw()
 
@@ -350,7 +351,7 @@ ggplot(data=RB.catch.selectyr) +
 #### Lk-specific: length-weight relationships ####
 unique(catch.selectyr$year)
 unique(catch.selectyr$lake)
-lk.select = "Boot"
+lk.select = "One Island"
 
 RB.catch.selectyrlk <- catch.selectyr %>% 
   filter(lake %in% lk.select) %>% 
@@ -388,7 +389,7 @@ RB.catch.selectyrlk.temp <- RB.catch.selectyrlk %>%
 
 #### Select Year-catch ####
 yr.select <- 2017
-lk.select = "Boot"
+lk.select = "One Island"
 
 catch.selectyrlk <- catch %>% 
   filter(year %in% yr.select) %>% 
@@ -416,31 +417,35 @@ ggplot(data=catch.selectyrlk) +
 str(catch)
 unique(catch$lake)
 
-lk.select <- "Boot"
+lk.select <- "One Island"
 
 
 lake.temp <- catch %>% 
   filter(lake %in% lk.select) %>% 
   filter(surveytype %in% "gillnet") %>% 
   arrange(year)
+
 (sampled.yrs <- unique(lake.temp$year))
 
-sampled.yrs[length(sampled.yrs)-1]
+yr.select <- sampled.yrs[length(sampled.yrs)]
+prev.yr <- sampled.yrs[length(sampled.yrs)-3]
 
 
 lk.catch.prev <- catch %>% 
   filter(lake %in% lk.select) %>% 
-  filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
+  filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(sp %in% c("RB","EB")) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
-       filter(age > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
+       #filter(age > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
+unique(lk.catch.prev$yearF)
+
 
 lk.catch.prev.rb <- catch %>% 
   filter(lake %in% lk.select, sp %in% "RB") %>% 
-  filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
+  filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(logm = log10(m),logL = log10(fl)) %>% 
@@ -448,7 +453,7 @@ lk.catch.prev.rb <- catch %>%
 
 lk.catch.prev.eb <- catch %>% 
   filter(lake %in% lk.select, sp %in% "EB") %>% 
-  filter(year %in% c(sampled.yrs[length(sampled.yrs)-2],sampled.yrs[length(sampled.yrs)])) %>% 
+  filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(logm = log10(m),logL = log10(fl)) %>% 
@@ -518,7 +523,7 @@ car::Anova(fit2.eb) #note, if interaction is present then that should be interpr
 
 #### length at age ####
 
-lk.select <- "Boot"
+lk.select <- "One Island"
 yr.select <- c("2017")
 
 
@@ -528,7 +533,7 @@ lake.temp <- catch %>%
   arrange(year)
 (sampled.yrs <- unique(lake.temp$year))
 
-yr.prev <- sampled.yrs[length(sampled.yrs)-2]
+(yr.prev <- sampled.yrs[length(sampled.yrs)-3])
 
 lk.catch.prev <- catch %>% 
   filter(sp %in% c("RB", "EB")) %>% 
@@ -537,7 +542,7 @@ lk.catch.prev <- catch %>%
   filter(year %in% c(yr.select, yr.prev)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(age.num = as.numeric(substr(age,1,1)), yearF=as.character(year)) %>% 
-  filter(age.num > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
+  #filter(age.num > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
   mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA)) %>% 
   mutate(lcat10=lencat(fl, w=10))
 lk.catch.prev
@@ -552,6 +557,8 @@ RB.ages.lk.catch.prev <- lk.catch.prev %>%
 ## prev.yr unaged sample: ##
 RB.noages.lk.catch.prev <- lk.catch.prev %>% 
   filter(is.na(age.num), yearF %in% yr.prev, sp %in% "RB") #note that all Boot samples were aged in 2002, so no need for this
+nrow(RB.noages.lk.catch.prev)
+
 ## prev.yr compare lencat by age
 ( alk.freq <- xtabs(~lcat10+age.num,data=RB.ages.lk.catch.prev) )
 rowSums(alk.freq)
@@ -573,6 +580,7 @@ RB.ages.lk.catch <- lk.catch.prev %>%
 ## current yr unaged sample: ##
 RB.noages.lk.catch <- lk.catch.prev %>% 
   filter(is.na(age.num), yearF %in% yr.select,  sp %in% "RB")
+nrow(RB.noages.lk.catch)
 ## current yr compare lencat by age
 ( alk.freq <- xtabs(~lcat10+age.num,data=RB.ages.lk.catch) )
 rowSums(alk.freq)
@@ -584,10 +592,11 @@ round(alk,3)
 RB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch)
 
 RB.all <- RB.ages.lk.catch.prev %>% 
-  #full_join(RB.noages.lk.catch.prev) %>%
-  #full_join(RB.noages.lk.catch) %>%
+  full_join(RB.noages.lk.catch.prev) %>%
+  full_join(RB.noages.lk.catch) %>%
   full_join(RB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+
 
 
 
@@ -601,6 +610,7 @@ EB.ages.lk.catch.prev <- lk.catch.prev %>%
 ## prev.yr unaged sample: ##
 EB.noages.lk.catch.prev <- lk.catch.prev %>% 
   filter(is.na(age.num), yearF %in% yr.prev, sp %in% "EB")
+nrow(EB.noages.lk.catch.prev)
 ## prev.yr compare lencat by age
 ( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch.prev) )
 rowSums(alk.freq)
@@ -621,6 +631,7 @@ EB.ages.lk.catch <- lk.catch.prev %>%
 ## current yr unaged sample: ##
 EB.noages.lk.catch <- lk.catch.prev %>% 
   filter(is.na(age.num), yearF %in% yr.select,  sp %in% "EB")
+nrow(EB.noages.lk.catch)
 ## current yr compare lencat by age
 ( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch) )
 rowSums(alk.freq)
@@ -632,8 +643,8 @@ round(alk,3)
 EB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch)
 
 EB.all <- EB.ages.lk.catch.prev %>% 
-  #full_join(EB.noages.lk.catch.prev) %>%
-  #full_join(EB.noages.lk.catch) %>%
+  full_join(EB.noages.lk.catch.prev) %>%
+  full_join(EB.noages.lk.catch) %>%
   full_join(EB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
 
@@ -642,16 +653,20 @@ EB.all <- EB.ages.lk.catch.prev %>%
 fish.all <- RB.all %>% 
   full_join(EB.all)
 
-
+unique(fish.all$yearF)
 
 #shape=aged.predict     shape="aging", #removed because no samples were unaged in Boot 
 
+
+
+
 fish.ages.plot <- ggplot(fish.all)+
-  geom_point(aes(x=age.num, y=fl, col=yearF), size=3, alpha=0.6)+
+  geom_point(aes(x=age.num, y=fl, col=yearF, shape=aged.predict), size=3, alpha=0.6)+
   geom_smooth(aes(x=age.num, y=fl, col=yearF), method="lm")+
   facet_wrap(~sp)+
+  scale_x_continuous(breaks = seq(min(fish.all$age.num), max(fish.all$age.num),1),minor_breaks = 1)+
   scale_colour_manual(values=c("black", "purple"))+
-  labs(x="Age", y="Fork Length (mm)", colour="Year")+
+  labs(x="Age", y="Fork Length (mm)", colour="Year", shape="Aging")+
   theme_bw()
 
 fish.ages.plot
@@ -660,7 +675,7 @@ fish.ages.plot
 
 
 
-
+#
 
 
 
