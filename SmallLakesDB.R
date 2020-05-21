@@ -44,12 +44,16 @@ str(catch)
 env <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Enviro", na = "NA")
 str(env)
 
+
+
+
 #### Select Year-Effort ####
 
 yr.select <- c(2017)
 
 effort.selectyr <- effort %>% 
   filter(year %in% yr.select)
+
 
 #### Maps ####
 
@@ -320,8 +324,28 @@ Figure.FL.sp <- ggplot(data=catch.selectyrlk) +
 
 Figure.FL.sp
 
-#also need to download the photos from Chunamun still
 
+
+### FL frequency, compare years ####
+
+lk.select = "One Island"
+
+catch.selectlk <- catch %>% 
+  filter(lake %in% lk.select)
+
+unique(catch.selectlk$sp)
+
+Figure.FL.yr <- ggplot(data=catch.selectlk) +
+  geom_histogram(aes(x=fl, fill=sp), colour="black", binwidth= 10)+
+  facet_wrap(~year, ncol=1)+
+  scale_x_continuous(breaks = seq(100,max(catch.selectlk$fl, na.rm=T),50))+
+  #scale_y_continuous(breaks = seq(0,30,5))+
+  labs(x="Fork Length (mm)", y="Frequency", fill="Species")+
+  theme_bw()
+
+Figure.FL.yr
+
+#
 
 
 
@@ -365,7 +389,10 @@ summary(fit1)
 residPlot(fit1) #check for length-wt outliers in residual plot
 
 
-### predicted weights ####
+
+
+
+### predicted weights #### - didn't really use
 
 no.wt <- RB.catch.selectyrlk %>% 
   filter(!is.na(fl)) %>% 
@@ -384,6 +411,7 @@ RB.catch.selectyrlk.temp <- RB.catch.selectyrlk %>%
   full_join(no.wt)
 # note: this is not a beautiful way of doing this, since it duplicates predicted weights 
 #   for other weights that were measured but have the same value. 
+
 
 
 
@@ -411,6 +439,11 @@ ggplot(data=catch.selectyrlk) +
   facet_wrap(~sp)+
   ggtitle(paste(catch.selectyrlk$lake,"Lake,",catch.selectyrlk$year))+
   theme_bw()
+
+fit.growth <- lm(logm~logL*sp, data=catch.selectyrlk)
+summary(fit.growth)
+car::Anova(fit.growth) #note, if interaction is present then that should be interpreted before year effect
+
 
 
 #### length-weight compare years ####
@@ -509,9 +542,8 @@ Figure.FLwt.compare.eb
 
 
 fit2.eb <- lm(logm~logL*yearF, data=lk.catch.prev.eb)
-
+summary(fit2.eb)
 car::Anova(fit2.eb) #note, if interaction is present then that should be interpreted before year effect
-
 
 # Perhaps next, backtransform and label the slope and exponent on figure?
 
@@ -546,6 +578,7 @@ lk.catch.prev <- catch %>%
   mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA)) %>% 
   mutate(lcat10=lencat(fl, w=10))
 lk.catch.prev
+
 
 # # # # # # # # # # # 
 #### RB Previous year ###
@@ -596,7 +629,10 @@ RB.all <- RB.ages.lk.catch.prev %>%
   full_join(RB.noages.lk.catch) %>%
   full_join(RB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+str(RB.all)
 
+fit3.rb <- lm(logL~age.num*yearF, data=RB.all)
+car::Anova(fit3.rb) #note, if interaction is present then that should be interpreted before year effect
 
 
 
@@ -647,6 +683,9 @@ EB.all <- EB.ages.lk.catch.prev %>%
   full_join(EB.noages.lk.catch) %>%
   full_join(EB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+
+fit3.eb <- lm(logL~age.num*yearF, data=EB.all)
+car::Anova(fit3.eb) 
 
 ### Combine RB and EB ###
 

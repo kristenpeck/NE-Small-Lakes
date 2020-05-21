@@ -1,0 +1,37 @@
+---
+title: "Moose Results"
+author: "KP"
+date: "20/05/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+source("SmallLakesDB.R")
+ls()
+```
+
+## Results
+Gillnets were soaked for a total of `r round(sum(Table1.moose[,"Soak Time (hrs)"]),2)` and a total of `r sum(Table1.moose$n)` rainbow trout were caught. The CPUE was `r round(sum(Table1.moose$n)/sum(Table1.moose[,"Soak Time (hrs)"]),2)` fish per net-hour and was approximately equal between the floating and sinking nets (Table 1). 
+
+
+## Tables
+
+Table 1. Summary of catch for Moose Lake gillnet sampling comparing July 2017. Fish are summarized by number of fish caught (n), fork length (FL; mm), mass (M; g), condition factor (K). Catch-per-unit-effort (CPUE) is calculated for number of fish caught per hour of gillnet fishing.
+```{r Tables, echo=F, results='asis'}
+library(knitr)
+kable(Table1.moose)
+
+```
+
+
+## Figures
+
+Figure 1: The frequency of measured fork lengths of rainbow trout coloured by maturity caught in the gillnet sampling of Moose Lake in July 2001, June 2013 and July 2017. Maturity codes include: IM/ST = either immature or sterile, M = Mature, MT = Maturing, SP = Spent, UNK = unknown, NA = not checked.  
+```{r Figure1, echo=F, results='asis'}
+Figure.FL.yr
+
+```
+
+
+
