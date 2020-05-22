@@ -2,7 +2,9 @@
 title: "Moose Results"
 author: "KP"
 date: "20/05/2020"
-output: word_document
+output:
+  word_document:
+    reference_docx: "Template_doc.docx"
 ---
 
 ```{r setup, include=FALSE}
@@ -10,14 +12,17 @@ knitr::opts_chunk$set(echo = F)
 source("SmallLakesDB.R")
 ls()
 ```
+## Methods
+Ages were predicted for individual fish without measured ages using a length-age key (n=`r nrow(RB.noages.lk.catch)`). However, fish smaller than `r lcat10.toosmall.current` mm were not sampled for age and therefore the age of these fish could not be predicted (n=`r n.toosmall.current`). 
+
 
 ## Results
-Gillnets were soaked for a total of `r round(sum(Table1.moose[,"Soak Time (hrs)"]),2)` and a total of `r sum(Table1.moose$n)` rainbow trout were caught. The CPUE was `r round(sum(Table1.moose$n)/sum(Table1.moose[,"Soak Time (hrs)"]),2)` fish per net-hour and was approximately equal between the floating and sinking nets (Table 1). 
-
+Gillnets were soaked for a total of `r round(sum(Table1.moose[,"Soak Time (hrs)"]),2)` hours and of `r sum(Table1.moose$n)` rainbow trout were caught. The CPUE was `r round(sum(Table1.moose$n)/sum(Table1.moose[,"Soak Time (hrs)"]),2)` fish per net-hour and was approximately equal between the floating and sinking nets (Table 1). 
+There was no significant difference between the 2013 and 2017 logFL~logM relationship (p=`r round(car::Anova(fit2.rb)[3,4],3)`).
 
 ## Tables
 
-Table 1. Summary of catch for Moose Lake gillnet sampling comparing July 2017. Fish are summarized by number of fish caught (n), fork length (FL; mm), mass (M; g), condition factor (K). Catch-per-unit-effort (CPUE) is calculated for number of fish caught per hour of gillnet fishing.
+Table 1. Summary of catch for Moose Lake gillnet sampling in July 2017. Catch was summarized by number of fish caught (n), fork length (FL; mm), mass (M; g), and condition factor (K) mean and range. Catch-per-unit-effort (CPUE) is calculated as number of fish caught per hour of gillnet fishing.
 ```{r Tables, echo=F, results='asis'}
 library(knitr)
 kable(Table1.moose)
@@ -27,11 +32,28 @@ kable(Table1.moose)
 
 ## Figures
 
-Figure 1: The frequency of measured fork lengths of rainbow trout coloured by maturity caught in the gillnet sampling of Moose Lake in July 2001, June 2013 and July 2017. Maturity codes include: IM/ST = either immature or sterile, M = Mature, MT = Maturing, SP = Spent, UNK = unknown, NA = not checked.  
-```{r Figure1, echo=F, results='asis'}
+
+```{r Figure1, echo=F, results='asis', fig.height=6, fig.width=6, fig.cap= "Figure 1: The frequency of measured fork lengths of rainbow trout coloured by maturity caught in the gillnet sampling of Moose Lake in July 2001, June 2013 and July 2017. Maturity codes indicate: IM/ST = Immature or Sterile, M = Mature, MT = Maturing, SP = Spent, UNK = unknown, or NA = not checked."  }
 Figure.FL.yr
 
 ```
 
+```{r Figure2, echo=F, results='asis', warning = FALSE, fig.height=7, fig.width=6, fig.cap= "Figure 2: Length-mass relationship of catch from Moose Lake 2017. The top panel shows the fork length to mass relationship with a loess smoother, and the bottom panel is log10 transformed with a linear regression line. Circles represent mass as measured in the field, and triangles represent fish where only fork length was measured and mass predicted from the log-log linear regression. "}
+plot(stackplots.FLwt)
 
+```
+
+
+```{r Figure3, echo=F, results='asis', fig.height=6, fig.width=6, fig.cap= ""  }
+print(lk.overview.map)
+```
+
+```{r Figure4, echo=F, results='asis', fig.height=6, fig.width=6, fig.cap= "Figure 4: Fulton's condition factor from the three most recent Moose Lake surveys in July 2001, June 2013 and July 2017. Fish are coloured by stock category based on fork length: Sub_stock < 200 mm, Stock between 200 and 400 mm, Quality between 400 and 550 mm and Trophy > 550mm."}
+Figure.K.lk
+
+```
+
+```{r Figure5, echo=F, results='asis', fig.height=4, fig.width=6, fig.cap = "Figure 5: Length at age with Von Bertallanfy growth curve for catch in June 2013 and July 2017. Circles are measured ages and triangles are ages predicted from an age-length key."}
+
+fish.ages.plot
 
