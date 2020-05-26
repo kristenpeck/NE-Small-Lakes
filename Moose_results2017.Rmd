@@ -17,8 +17,11 @@ Ages were predicted for individual fish without measured ages using a length-age
 
 
 ## Results
-Gillnets were soaked for a total of `r round(sum(Table1.moose[,"Soak Time (hrs)"]),2)` hours and of `r sum(Table1.moose$n)` rainbow trout were caught. The CPUE was `r round(sum(Table1.moose$n)/sum(Table1.moose[,"Soak Time (hrs)"]),2)` fish per net-hour and was approximately equal between the floating and sinking nets (Table 1). 
-There was no significant difference between the 2013 and 2017 logFL~logM relationship (p=`r round(car::Anova(fit2.rb)[3,4],3)`).
+Gillnets were soaked for a total of `r round(sum(Table1.moose[,"Soak Time (hrs)"]),2)` hours and a total of `r sum(Table1.moose$n)` rainbow trout were caught. The CPUE was `r round(sum(Table1.moose$n)/sum(Table1.moose[,"Soak Time (hrs)"]),2)` fish per net-hour and was approximately equal between the floating and sinking nets (Table 1). 
+
+The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. There was no significant difference between the 2013 and 2017 logFL~logM relationship (not shown, p=`r round(car::Anova(fit2.rb)[3,4],3)`).
+
+
 
 ## Tables
 
@@ -38,7 +41,7 @@ Figure.FL.yr
 
 ```
 
-```{r Figure2, echo=F, results='asis', warning = FALSE, fig.height=7, fig.width=6, fig.cap= "Figure 2: Length-mass relationship of catch from Moose Lake 2017. The top panel shows the fork length to mass relationship with a loess smoother, and the bottom panel is log10 transformed with a linear regression line. Circles represent mass as measured in the field, and triangles represent fish where only fork length was measured and mass predicted from the log-log linear regression. "}
+```{r Figure2, echo=F, results='asis', warning = FALSE, fig.height=7, fig.width=6, fig.cap= "Figure 2: Length-mass relationship of catch from Moose Lake 2017. The top panel shows the fork length to mass relationship with a loess smoother, and the bottom panel is log10 transformed with a linear regression line. Circles represent mass as measured in the field, and triangles represent fish where only fork length was measured and mass predicted from the log-log linear regression. The shaded area around the lines are SE."}
 plot(stackplots.FLwt)
 
 ```
@@ -53,7 +56,7 @@ Figure.K.lk
 
 ```
 
-```{r Figure5, echo=F, results='asis', fig.height=4, fig.width=6, fig.cap = "Figure 5: Length at age with Von Bertallanfy growth curve for catch in June 2013 and July 2017. Circles are measured ages and triangles are ages predicted from an age-length key."}
+```{r Figure5, echo=F, results='asis', fig.height=4, fig.width=6, fig.cap = "Figure 5: Length at age with Von Bertallanfy growth curve for catch in June 2013 and July 2017. Circles are measured ages and triangles are ages predicted from an age-length key. Points were jittered horizontally at each age for improved viewing."}
 
 fish.ages.plot
 

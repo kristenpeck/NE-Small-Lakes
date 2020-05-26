@@ -3,7 +3,8 @@
   # lakes, but unique circumstances make that a little tricky. 
 
 # Author: Kristen Peck
-# Date: 12-Feb-2020
+# Date created : 12-Feb-2020
+# Github home: https://github.com/kristenpeck/NE-Small-Lakes
 
 
 
@@ -559,8 +560,8 @@ lk.catch.prev <- catch %>%
   filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(sp %in% c("RB","EB")) %>% 
-  #filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
-       #filter(age > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+       #filter(age > 1) %>% ## NOTE: this is only for Boot! not for other lakes
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 unique(lk.catch.prev$yearF)
@@ -570,7 +571,7 @@ lk.catch.prev.rb <- catch %>%
   filter(lake %in% lk.select, sp %in% "RB") %>% 
   filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
-  #filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 
@@ -578,7 +579,7 @@ lk.catch.prev.eb <- catch %>%
   filter(lake %in% lk.select, sp %in% "EB") %>% 
   filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
-  #filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 
@@ -647,7 +648,7 @@ Figure.FLwt.compare.eb
 
 #### length at age ####
 
-lk.select <- "Boot"
+lk.select <- "Moose"
 yr.select <- c("2017")
 
 
@@ -656,7 +657,7 @@ lake.temp <- catch %>%
   arrange(year)
 (sampled.yrs <- unique(lake.temp$year))
 
-(yr.prev <- sampled.yrs[length(sampled.yrs)-2])
+(yr.prev <- sampled.yrs[length(sampled.yrs)-1])
 
 lk.catch.prev <- catch %>% 
   dplyr::filter(sp %in% c("RB", "EB"), lake %in% lk.select, surveytype %in% "gillnet",
@@ -766,78 +767,78 @@ str(RB.all)
 
 
 # # # # # # # # # # # 
-#### EB Previous year ###
-# # # # # # # # # # # 
-tmp <- lk.catch.prev %>% 
-  dplyr::filter(yearF %in% yr.prev,  sp %in% "EB", !is.na(age.num)) %>% 
-  select(year, fl, lcat10) %>% 
-  arrange(lcat10)
-min(tmp$lcat10, na.rm=T) # cannot predict beyond this minimum so filter out for predicting ages.
-(n.toosmall.prev <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& 
-                                   lk.catch.prev$year %in% yr.prev)))
-
-## prev.yr aged sample: ##
-EB.ages.lk.catch.prev <- lk.catch.prev %>%
-  dplyr::filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
-## prev.yr unaged sample: ##
-EB.noages.lk.catch.prev <- lk.catch.prev %>%
-  filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
-nrow(EB.noages.lk.catch.prev)
-## prev.yr compare lencat by age
-( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch.prev) )
-rowSums(alk.freq)
-
-alk <- prop.table(alk.freq,margin=1)
-round(alk,3)
-
-# prev.yr predict individual ages from unaged sample:
-EB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch.prev)
-
+# #### EB Previous year ### Applicable to Heart Lake, Boot Lake, and One Island
 # # # # # # # # # # # # 
-# #### EB Current year ###
-# # # # # # # # # # # # 
-tmp <- lk.catch.prev %>% 
-  dplyr::filter(yearF %in% yr.select,  sp %in% "EB", !is.na(age.num)) %>% 
-  select(year, fl, lcat10) %>% 
-  arrange(lcat10)
-(lcat10.toosmall.current <- min(tmp$lcat10, na.rm=T)) # cannot predict beyond this minimum so filter out for predicting ages.
-(n.toosmall.current <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& lk.catch.prev$year %in% yr.select)))
-
-## current yr aged sample: ##
-EB.ages.lk.catch <- lk.catch.prev %>%
-  filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
-## current yr unaged sample: ##
-EB.noages.lk.catch <- lk.catch.prev %>%
-  filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
-nrow(EB.noages.lk.catch)
-## current yr compare lencat by age
-( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch) )
-rowSums(alk.freq)
-
-alk <- prop.table(alk.freq,margin=1)
-round(alk,3)
-
-# current yr predict individual ages from unaged sample:
-EB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch)
-
-EB.all <- EB.ages.lk.catch.prev %>%
-  full_join(EB.noages.lk.catch.prev) %>%
-  full_join(EB.noages.lk.catch) %>%
-  full_join(EB.ages.lk.catch) %>%
-  mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
-
-fit3.eb <- lm(logL~age.num*yearF, data=EB.all)
-car::Anova(fit3.eb)
-
-### Combine RB and EB ###
-
-fish.all <- RB.all %>%
- full_join(EB.all)
-
-
-# # *** alternatively, if do not have two species:
-# fish.all <- RB.all
-# unique(fish.all$yearF)
+# tmp <- lk.catch.prev %>% 
+#   dplyr::filter(yearF %in% yr.prev,  sp %in% "EB", !is.na(age.num)) %>% 
+#   select(year, fl, lcat10) %>% 
+#   arrange(lcat10)
+# min(tmp$lcat10, na.rm=T) # cannot predict beyond this minimum so filter out for predicting ages.
+# (n.toosmall.prev <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& 
+#                                    lk.catch.prev$year %in% yr.prev)))
+# 
+# ## prev.yr aged sample: ##
+# EB.ages.lk.catch.prev <- lk.catch.prev %>%
+#   dplyr::filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
+# ## prev.yr unaged sample: ##
+# EB.noages.lk.catch.prev <- lk.catch.prev %>%
+#   filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
+# nrow(EB.noages.lk.catch.prev)
+# ## prev.yr compare lencat by age
+# ( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch.prev) )
+# rowSums(alk.freq)
+# 
+# alk <- prop.table(alk.freq,margin=1)
+# round(alk,3)
+# 
+# # prev.yr predict individual ages from unaged sample:
+# EB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch.prev)
+# 
+# # # # # # # # # # # # # 
+# # #### EB Current year ###
+# # # # # # # # # # # # # 
+# tmp <- lk.catch.prev %>% 
+#   dplyr::filter(yearF %in% yr.select,  sp %in% "EB", !is.na(age.num)) %>% 
+#   select(year, fl, lcat10) %>% 
+#   arrange(lcat10)
+# (lcat10.toosmall.current <- min(tmp$lcat10, na.rm=T)) # cannot predict beyond this minimum so filter out for predicting ages.
+# (n.toosmall.current <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& lk.catch.prev$year %in% yr.select)))
+# 
+# ## current yr aged sample: ##
+# EB.ages.lk.catch <- lk.catch.prev %>%
+#   filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
+# ## current yr unaged sample: ##
+# EB.noages.lk.catch <- lk.catch.prev %>%
+#   filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
+# nrow(EB.noages.lk.catch)
+# ## current yr compare lencat by age
+# ( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch) )
+# rowSums(alk.freq)
+# 
+# alk <- prop.table(alk.freq,margin=1)
+# round(alk,3)
+# 
+# # current yr predict individual ages from unaged sample:
+# EB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch)
+# 
+# EB.all <- EB.ages.lk.catch.prev %>%
+#   full_join(EB.noages.lk.catch.prev) %>%
+#   full_join(EB.noages.lk.catch) %>%
+#   full_join(EB.ages.lk.catch) %>%
+#   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+# 
+# fit3.eb <- lm(logL~age.num*yearF, data=EB.all)
+# car::Anova(fit3.eb)
+# 
+# ### Combine RB and EB ###
+# 
+# fish.all <- RB.all %>%
+#  full_join(EB.all)
+# 
+# 
+# *** alternatively, if do not have two species:
+fish.all <- RB.all
+unique(fish.all$yearF)
 
 
 # check if signficant difference in length distribution to ages between years
@@ -873,6 +874,14 @@ x.prev <- seq(0,max(prev.RB.all$age.num, na.rm=T),length.out=199)        # ages 
 pTyp.prev <- vbTyp(x.prev,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(fitTyp)[3])   # predicted lengths
 
 
+### Trouble-shooting: ###
+
+#I have found that if you only have 4 ages or fewer in the samples, 
+# the parameters are difficult to estimate.
+
+#also if there is a small sample size? I think this is another reason parameters cannot be estimated. 
+
+
 #current year:
 
 yr.select
@@ -884,6 +893,7 @@ names(curr.RB.all)
 svTyp <- list(Linf=max(curr.RB.all$fl,na.rm=TRUE),K=0.3,t0=0)
 
 vbTyp <- function(age,Linf,K,t0) Linf*(1-exp(-K*(age-t0)))
+
 fitTyp <- nls(fl~vbTyp(age.num,Linf,K,t0),data=curr.RB.all,start=svTyp)
 
 curr.RB.all.coeff <- coef(fitTyp)
@@ -915,17 +925,18 @@ pTyp.curr <- vbTyp(x.curr,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(f
 
 
 fish.ages.plot <- ggplot()+
-  geom_point(data=fish.all, aes(x=age.num, y=fl, col=yearF, shape=aged.predict), size=3, alpha=0.6)+
-  geom_smooth(data=fish.all, aes(x=age.num, y=fl, col=yearF), method="loess")+
-  #geom_line(aes(x=x.prev, y=pTyp.prev), col="black", size=1.5)+
-  #geom_line(aes(x=x.curr, y=pTyp.curr), col="purple", size=1.5)+
-  #annotate(geom = "text", x = 5, y = 50, label = label.currentyr, parse=F)+
-  #annotate(geom = "text", x = 5, y = 20, label = label.prevyr, parse=F)+
+  geom_jitter(data=fish.all, aes(x=age.num, y=fl, col=yearF, shape=aged.predict),width = 0.15,
+              size=3, alpha=0.6)+
+  #geom_smooth(data=fish.all, aes(x=age.num, y=fl, col=yearF), method="loess")+
+  geom_line(aes(x=x.prev, y=pTyp.prev), col="black", size=1.5)+
+  geom_line(aes(x=x.curr, y=pTyp.curr), col="purple", size=1.5)+
+  annotate(geom = "text", x = 5, y = 50, label = label.currentyr, parse=F)+
+  annotate(geom = "text", x = 5, y = 20, label = label.prevyr, parse=F)+
   scale_x_continuous(breaks = seq(min(fish.all$age.num, na.rm=T), max(fish.all$age.num, na.rm=T),1),
                      minor_breaks = 1)+
   scale_y_continuous(limits = c(0,max(fish.all$fl+25, na.rm=T)), 
                                 breaks = seq(0, max(fish.all$fl+50, na.rm=T),100))+
-  facet_wrap(~sp, ncol=2)+
+  #facet_wrap(~sp, ncol=2)+
   scale_colour_manual(values=c("black", "purple"))+
   labs(x="Age", y="Fork Length (mm)", colour="Year:", shape="Ages:")+
   theme_bw()+
