@@ -33,7 +33,7 @@ catch <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Catch", na = "NA",
                     col_types = c("guess","guess","guess","guess","guess",
                                   "guess","guess","guess","guess","guess",
                                   "guess","numeric","text","text", "guess",
-                                  "guess","guess"))
+                                  "guess","guess", "guess"))
 
 catch <- catch %>% 
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
@@ -112,7 +112,7 @@ lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenS
 print(lk.overview.map) #not printing?? *** TO FIX ****
 
 
-#### Appendix: gillnets maps 2019: ###
+#### Appendix: gillnets maps: ###
 
 unique(locations.lk$lake)
 
@@ -213,20 +213,27 @@ lks.albers <- st_transform(indiv.nets.st, crs=3005)
 ### CTD profiles ####
 
 yr.select <- 2017
+lk.select <- "Boot"
+
 
 env.selectyr <- env %>% 
   mutate(year = year(date)) %>% 
   filter(year %in% yr.select) %>% 
   gather("var","value",tempdown, dodown, -conddown)
 
+env.selectyrlk <- env %>% 
+  mutate(year = year(date)) %>% 
+  filter(year %in% yr.select) %>% 
+  filter(lake %in% lk.select) %>% 
+  gather("var","value",tempdown, dodown, -conddown)
 
-Figure.env <- ggplot(data=env.selectyr)+
+Figure.env <- ggplot(data=env.selectyrlk)+
   geom_path(aes(x=value, y=depthdown, colour=var), size=1.5)+
   scale_y_reverse(name= "Depth (m)", 
-                  breaks=seq(min(env.selectyr$depthdown, na.rm=T),
-                             max(env.selectyr$depthdown, na.rm=T), 1))+
-  scale_x_continuous(name = "",breaks=seq(min(env.selectyr$value, na.rm=T),
-                                          max(env.selectyr$value, na.rm=T),2))+
+                  breaks=seq(min(env.selectyrlk$depthdown, na.rm=T),
+                             max(env.selectyrlk$depthdown, na.rm=T), 1))+
+  scale_x_continuous(name = "",breaks=seq(floor(min(env.selectyrlk$value, na.rm=T)),
+                                          ceiling(max(env.selectyrlk$value, na.rm=T)),1))+
   scale_colour_manual(values=c("black", "gray60"),
                       name = "",labels = c("Diss. Oxygen (mg/L)","Temp. (deg C)"))+
   facet_wrap(~lake, ncol=2)+
