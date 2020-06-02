@@ -293,7 +293,16 @@ Table1.moose <- Table1 %>%
          `Mean K (range)`, CPUE)
 Table1.moose
 
-
+Table1.boot <- Table1 %>% 
+  filter(lake %in% "Boot") %>% 
+  mutate(`Mean FL (range)`=paste0(round(`FL mean`,2)," (",`FL range (mm)`,")")) %>% 
+  mutate(`Mean M (range)`=paste0(round(`m mean`,2)," (",`m range (g)`,")")) %>% 
+  mutate(`Mean K (range)` = paste0(round(`k mean`, 2)," (", `k range`, ")")) %>% 
+  mutate(`Soak Time (hrs)` = round(`Soak Time (hrs)`, 2)) %>% 
+  select(lake, Year, sp,`Net Type`,`Soak Time (hrs)`, n, `Mean FL (range)`,`Mean M (range)`,
+         `Mean K (range)`, CPUE) %>% 
+  arrange(sp,`Net Type`)
+Table1.boot
 
 # table - demographics
 
@@ -346,7 +355,7 @@ Figure.FL.mat #note this puts species together
 unique(catch.selectyr$year)
 unique(catch.selectyr$lake)
 
-lk.select = "Moose"
+lk.select = "Boot"
 
 catch.selectyrlk <- catch.selectyr %>% 
   filter(lake %in% lk.select) 
@@ -356,7 +365,7 @@ unique(catch.selectyrlk$sp)
 Figure.FL.sp <- ggplot(data=catch.selectyrlk) +
   geom_histogram(aes(x=fl, fill=sp), colour="black", binwidth= 10)+
   facet_wrap(~sp, ncol=1)+
-  scale_x_continuous(breaks = seq(100,max(catch.selectyrlk$fl),50))+
+  scale_x_continuous(breaks = seq(50,max(catch.selectyrlk$fl, na.rm=T),50))+
   #scale_y_continuous(breaks = seq(0,30,5))+
   labs(x="Fork Length (mm)", y="Frequency", fill="Species")+
   theme_bw()
@@ -367,15 +376,15 @@ Figure.FL.sp
 
 ### FL frequency, compare years ####
 
-lk.select = "Moose"
-
+lk.select = "Boot"
+str(catch)
 catch.selectlk <- catch %>% 
-  filter(lake %in% lk.select)
+  filter(lake %in% lk.select, surveytype %in% "gillnet")
 
 unique(catch.selectlk$sp)
 
 Figure.FL.yr <- ggplot(data=catch.selectlk) +
-  geom_histogram(aes(x=fl, fill=mat2), colour="black", binwidth= 10)+
+  geom_histogram(aes(x=fl, fill=sp), colour="black", binwidth= 10)+
   facet_wrap(~year, ncol=1)+
   scale_x_continuous(breaks = seq(100,max(catch.selectlk$fl, na.rm=T),50))+
   #scale_y_continuous(breaks = seq(0,30,5))+
@@ -410,7 +419,7 @@ ggplot(data=RB.catch.selectyr) +
 #lake specific condition-frequency plot
 
 RB.catch.selectlk <- catch %>% 
-  filter(sp %in% "RB") %>% 
+  filter(sp %in% "RB", surveytype %in% "gillnet") %>% 
   filter(lake %in% lk.select) 
 
 Figure.K.lk <- ggplot(data=RB.catch.selectlk) +
@@ -429,27 +438,32 @@ unique(RB.catch.selectlk$year)
 #### LENGTH-WEIGHT ####
 ## ## ## ## ## ## ## ##
 
+
+
 #### Lk-specific: length-weight relationships ####
 unique(catch.selectyr$year)
 unique(catch.selectyr$lake)
-lk.select = "Moose"
+lk.select = "Boot"
 
+
+## RB ##
 RB.catch.selectyr.lk <- catch.selectyr %>% 
   filter(lake %in% lk.select) %>% 
   filter(sp %in% "RB")
 str(RB.catch.selectyr.lk)
 
 
-fit1 <- lm(logm~logL, data=RB.catch.selectyr.lk)
-summary(fit1)
-fit1$coeff
+fitflwt.rb <- lm(logm~logL, data=RB.catch.selectyr.lk)
+summary(fitflwt.rb)
+fitflwt.rb$coeff
 
-residPlot(fit1) #check for length-wt outliers in residual plot
-
-
+residPlot(fitflwt.rb) #check for length-wt outliers in residual plot
 
 
-### predicted weights #### - fill in the blanks
+
+
+### predicted weights RB #### - fill in the blanks
+
 
 (wt <- RB.catch.selectyr.lk %>%
   filter(!is.na(fl)) %>%
@@ -461,8 +475,10 @@ residPlot(fit1) #check for length-wt outliers in residual plot
   filter(is.na(m)) %>% 
   mutate(m.pred = as.character("predicted"))) 
 
-pred.logwt <- predict(fit1, no.wt, interval ="prediction") #this is predicting individual fish weights, not average
-cf <- logbtcf(fit1, 10)
+nrow(no.wt)
+
+pred.logwt <- predict(fitflwt.rb, no.wt, interval ="prediction") #this is predicting individual fish weights, not average
+cf <- logbtcf(fitflwt.rb, 10)
 back.trans <- cf*10^pred.logwt
 
 no.wt$m <- as.numeric(back.trans[,1])
@@ -480,7 +496,8 @@ str(no.wt)
 library(gridExtra)
 library(grid)
 
-label1 <- paste0("log[10](M) == ", round(fit1$coeff[1],2)," + ",round(fit1$coeff[2],2)," * log[10](FL)")
+labelflwt.rb <- paste0("log[10](M) == ", round(fitflwt.rb$coeff[1],2)," + ",
+                 round(fitflwt.rb$coeff[2],2)," * log[10](FL)")
 
 plot.FLwt <- ggplot(data=predRB.catch.selectyr.lk) +
   geom_point(aes(x=fl, y=m, shape=m.pred, colour=m.pred), alpha=0.8, size=4)+
@@ -494,61 +511,142 @@ plot.FLwt
 plot.logFLwt <- ggplot(data=predRB.catch.selectyr.lk) +
   geom_point(aes(x=logL, y=logm, shape=m.pred, colour=m.pred), alpha=0.8, size=4)+
   geom_smooth(aes(x=logL, y=logm), method="lm")+
-  annotate(geom = "text", x = 2.15, y = 2.75, label = label1, parse=T)+
+  annotate(geom = "text", x = min(predRB.catch.selectyr.lk$logL, na.rm=T)+.1, 
+           y = max(predRB.catch.selectyr.lk$logm, na.rm=T)-0.2, label = labelflwt.rb, parse=T)+
   labs(x= "log10 Fork Length", y="log10 Mass", shape="Mass", colour="Mass", parse=T)+
   theme_bw()+
   theme(legend.position = "bottom")
 
 plot.logFLwt
 
-stackplots.FLwt <- grid.arrange(plot.FLwt, plot.logFLwt, ncol=1)
-plot(stackplots.FLwt)
+stackplots.FLwtRB <- grid.arrange(plot.FLwt, plot.logFLwt, ncol=1)
+plot(stackplots.FLwtRB)
 
 
-# #### Select Year-catch ####
-# yr.select <- 2017
-# lk.select = "Moose"
+
+## RB - EB compared##
+
+EB.catch.selectyr.lk <- catch.selectyr %>% 
+  filter(lake %in% lk.select) %>% 
+  filter(sp %in% "EB")
+str(EB.catch.selectyr.lk)
+
+
+fitflwt.eb <- lm(logm~logL, data=EB.catch.selectyr.lk)
+summary(fitflwt.eb)
+fitflwt.eb$coeff
+
+residPlot(fitflwt.eb) #check for length-wt outliers in residual plot
+
+
+
+
+### predicted weights  EB #### - fill in the blanks
+
+(wt.EB <- EB.catch.selectyr.lk %>%
+    filter(!is.na(fl)) %>%
+    filter(!is.na(m)) %>%
+    mutate(m.pred = as.character("measured"))) 
+
+(no.wt.EB <- EB.catch.selectyr.lk %>% 
+    filter(!is.na(fl)) %>% 
+    filter(is.na(m)) %>% 
+    mutate(m.pred = as.character("predicted"))) 
+
+nrow(no.wt.EB)
+
+pred.logwt <- predict(fitflwt.eb, no.wt.EB, interval ="prediction") #this is predicting individual fish weights, not average
+cf <- logbtcf(fitflwt.eb, 10)
+back.trans <- cf*10^pred.logwt
+
+no.wt.EB$m <- as.numeric(back.trans[,1])
+no.wt.EB$pred.m.lwr <- back.trans[,2]
+no.wt.EB$pred.m.upr <- back.trans[,3]
+str(no.wt.EB)
+
+(predEB.catch.selectyr.lk <- wt.EB %>% 
+    full_join(no.wt.EB) %>% 
+    mutate(logm = log10(m)) %>% 
+    arrange(catchID)) 
+
+
+#figure- compare species:
+predALL.catch.selectyr.lk <- rbind(predRB.catch.selectyr.lk,predEB.catch.selectyr.lk)
+unique(predALL.catch.selectyr.lk$sp)
+
+
+labelflwt.rb <- paste0("RB: log[10](M) == ", round(fitflwt.rb$coeff[1],2)," + ",
+                       round(fitflwt.rb$coeff[2],2)," * log[10](FL)")
+labelflwt.eb <- paste0("EB: log[10](M) == ", round(fitflwt.eb$coeff[1],2)," + ",
+                       round(fitflwt.eb$coeff[2],2)," * log[10](FL)")
+
+plot.FLwt <- ggplot(data=predALL.catch.selectyr.lk) +
+  geom_point(aes(x=fl, y=m, shape=sp, colour=sp), alpha=0.8, size=4)+
+  geom_smooth(aes(x=fl, y=m, col=sp), method="loess")+
+  labs(title=paste(predALL.catch.selectyr.lk$lake,"Lake,",predALL.catch.selectyr.lk$year),
+       x= "Fork Length (mm)", y="Mass (g)", shape="Species", colour="Species")+
+  theme_bw()+
+  theme(legend.position = "")
+plot.FLwt
+
+plot.logFLwt <- ggplot(data=predALL.catch.selectyr.lk) +
+  geom_point(aes(x=logL, y=logm, shape=sp, colour=sp), alpha=0.8, size=4)+
+  geom_smooth(aes(x=logL, y=logm, col=sp), method="lm")+
+  annotate(geom = "text", x = min(predALL.catch.selectyr.lk$logL, na.rm=T)+0.12, 
+            y = max(predALL.catch.selectyr.lk$logm, na.rm=T)-0.2, label = labelflwt.rb, parse=T)+
+  annotate(geom = "text", x = min(predALL.catch.selectyr.lk$logL, na.rm=T)+0.12, 
+           y = max(predALL.catch.selectyr.lk$logm, na.rm=T)-0.45, label = labelflwt.eb, parse=T)+
+  labs(x= "log10 Fork Length", y="log10 Mass", shape="Mass", colour="Mass", parse=T)+
+  theme_bw()+
+  theme(legend.position = "bottom")
+
+plot.logFLwt
+
+stackplots.FLwtALL <- grid.arrange(plot.FLwt, plot.logFLwt, ncol=1)
+plot(stackplots.FLwtALL)
+
+
+
+
+# ### plot length-weight by maturity
 # 
-# catch.selectyrlk <- catch %>% 
-#   filter(year %in% yr.select) %>% 
-#   filter(lake %in% lk.select) %>% 
-#   filter(sp %in% c("RB","EB"))
-
-
-#length-weight plot - most recent year
-plot.FLwt.maturity <- ggplot(data=predRB.catch.selectyr.lk) +
-  geom_point(aes(x=fl, y=m, col=mat2, shape=mat2), alpha=0.8, size=4)+
-  geom_smooth(aes(x=fl, y=m), method="loess")+
-  facet_wrap(~sp)+
-  ggtitle(paste(predRB.catch.selectyr.lk$lake,"Lake,",predRB.catch.selectyr.lk$year))+
-  theme_bw()
-plot.FLwt.maturity
-
-plot.logFLwt.maturity <- ggplot(data=predRB.catch.selectyr.lk) +
-  geom_point(aes(x=logL, y=logm, col=mat2, shape=mat2), alpha=0.8, size=4)+
-  geom_smooth(aes(x=logL, y=logm), method="lm")+
-  facet_wrap(~sp)+
-  ggtitle(paste(predRB.catch.selectyr.lk$lake,"Lake,",predRB.catch.selectyr.lk$year))+
-  labs(colour="Maturity", shape="Maturity")+
-  theme_bw()
-plot.logFLwt.maturity
+# 
+# #length-weight plot - most recent year
+# plot.FLwt.maturity <- ggplot(data=predRB.catch.selectyr.lk) +
+#   geom_point(aes(x=fl, y=m, col=mat2, shape=mat2), alpha=0.8, size=4)+
+#   geom_smooth(aes(x=fl, y=m), method="loess")+
+#   facet_wrap(~sp)+
+#   ggtitle(paste(predRB.catch.selectyr.lk$lake,"Lake,",predRB.catch.selectyr.lk$year))+
+#   theme_bw()
+# plot.FLwt.maturity
+# 
+# plot.logFLwt.maturity <- ggplot(data=predRB.catch.selectyr.lk) +
+#   geom_point(aes(x=logL, y=logm, col=mat2, shape=mat2), alpha=0.8, size=4)+
+#   geom_smooth(aes(x=logL, y=logm), method="lm")+
+#   facet_wrap(~sp)+
+#   ggtitle(paste(predRB.catch.selectyr.lk$lake,"Lake,",predRB.catch.selectyr.lk$year))+
+#   labs(colour="Maturity", shape="Maturity")+
+#   theme_bw()
+# plot.logFLwt.maturity
 
 
 
 
 
 # compare slopes between species:
-# fit.growth <- lm(logm~logL*sp, data=predRB.catch.selectyr.lk)
-# summary(fit.growth)
-# car::Anova(fit.growth) #note, if interaction is present then that should be interpreted before year effect
 
+
+ fit.growth <- lm(logm~logL*sp, data=predALL.catch.selectyr.lk)
+ summary(fit.growth)
+ car::Anova(fit.growth) #note, if interaction is present then that should be interpreted before year effect
+ fit.growth.p <- ifelse(Anova(fit.growth)$Pr[3] < 0.001, "<0.001",Anova(fit.growth)$Pr[3])
 
 
 #### length-weight compare years ####
 str(catch)
 unique(catch$lake)
 
-lk.select <- "Moose"
+lk.select <- "Boot"
 
 
 lake.temp <- catch %>% 
@@ -623,7 +721,7 @@ Figure.FLwt.compare.rb
 
 fit2.rb <- lm(logm~logL*yearF, data=lk.catch.prev.rb)
 car::Anova(fit2.rb)
-car::Anova(fit2.rb)[3,4]
+(p.flwtyrs.RB <- round(Anova(fit2.rb)[3,4], 3))
 
 #brookies only
 Figure.FLwt.compare.eb <- ggplot() +
@@ -640,9 +738,13 @@ Figure.FLwt.compare.eb <- ggplot() +
 Figure.FLwt.compare.eb
 
 # If EBs present:
-# fit2.eb <- lm(logm~logL*yearF, data=lk.catch.prev.eb)
-# summary(fit2.eb)
-# car::Anova(fit2.eb) #note, if interaction is present then that should be interpreted before year effect
+fit2.eb <- lm(logm~logL*yearF, data=lk.catch.prev.eb)
+summary(fit2.eb)
+car::Anova(fit2.eb) #note, if interaction is present then that should be interpreted before year effect
+(p.flwtyrs.EB <-  round(Anova(fit2.eb)[3,4],3))
+
+
+
 
 
 
@@ -655,7 +757,7 @@ Figure.FLwt.compare.eb
 
 #### length at age ####
 
-lk.select <- "Moose"
+lk.select <- "Boot"
 yr.select <- c("2017")
 
 
@@ -671,7 +773,7 @@ lk.catch.prev <- catch %>%
                 year %in% c(yr.select, yr.prev)) %>% 
   #filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(age.num = as.numeric(substr(age,1,1)), yearF=as.character(year)) %>% 
-  #filter(age.num > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
+  filter(age.num > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
   mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA)) %>% 
   mutate(lcat10=lencat(fl, w=10))
 lk.catch.prev
@@ -708,6 +810,10 @@ round(alk,3)
 str(RB.noages.lk.catch.prev)
 # prev.yr predict individual ages from unaged sample (Isermann+Knight 2005 method)
 RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.prev)
+
+#comment out for Boot 2002 b/c did not have any unmeasured fish (except 1-yr-olds, which also had no length)
+
+
 
 
 # #alt method- modelled age:
@@ -776,76 +882,76 @@ str(RB.all)
 # # # # # # # # # # # 
 # #### EB Previous year ### Applicable to Heart Lake, Boot Lake, and One Island
 # # # # # # # # # # # # 
-# tmp <- lk.catch.prev %>% 
-#   dplyr::filter(yearF %in% yr.prev,  sp %in% "EB", !is.na(age.num)) %>% 
-#   select(year, fl, lcat10) %>% 
-#   arrange(lcat10)
-# min(tmp$lcat10, na.rm=T) # cannot predict beyond this minimum so filter out for predicting ages.
-# (n.toosmall.prev <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& 
-#                                    lk.catch.prev$year %in% yr.prev)))
-# 
-# ## prev.yr aged sample: ##
-# EB.ages.lk.catch.prev <- lk.catch.prev %>%
-#   dplyr::filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
-# ## prev.yr unaged sample: ##
-# EB.noages.lk.catch.prev <- lk.catch.prev %>%
-#   filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
-# nrow(EB.noages.lk.catch.prev)
-# ## prev.yr compare lencat by age
-# ( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch.prev) )
-# rowSums(alk.freq)
-# 
-# alk <- prop.table(alk.freq,margin=1)
-# round(alk,3)
-# 
-# # prev.yr predict individual ages from unaged sample:
-# EB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch.prev)
-# 
-# # # # # # # # # # # # # 
+tmp <- lk.catch.prev %>%
+  dplyr::filter(yearF %in% yr.prev,  sp %in% "EB", !is.na(age.num)) %>%
+  select(year, fl, lcat10) %>%
+  arrange(lcat10)
+min(tmp$lcat10, na.rm=T) # cannot predict beyond this minimum so filter out for predicting ages.
+(n.toosmall.prev <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)&
+                                   lk.catch.prev$year %in% yr.prev)))
+
+## prev.yr aged sample: ##
+EB.ages.lk.catch.prev <- lk.catch.prev %>%
+  dplyr::filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
+## prev.yr unaged sample: ##
+EB.noages.lk.catch.prev <- lk.catch.prev %>%
+  filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "EB")
+nrow(EB.noages.lk.catch.prev)
+## prev.yr compare lencat by age
+( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch.prev) )
+rowSums(alk.freq)
+
+alk <- prop.table(alk.freq,margin=1)
+round(alk,3)
+
+# prev.yr predict individual ages from unaged sample:
+EB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch.prev)
+
+# # # # # # # # # # # # #
 # # #### EB Current year ###
-# # # # # # # # # # # # # 
-# tmp <- lk.catch.prev %>% 
-#   dplyr::filter(yearF %in% yr.select,  sp %in% "EB", !is.na(age.num)) %>% 
-#   select(year, fl, lcat10) %>% 
-#   arrange(lcat10)
-# (lcat10.toosmall.current <- min(tmp$lcat10, na.rm=T)) # cannot predict beyond this minimum so filter out for predicting ages.
-# (n.toosmall.current <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& lk.catch.prev$year %in% yr.select)))
-# 
-# ## current yr aged sample: ##
-# EB.ages.lk.catch <- lk.catch.prev %>%
-#   filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
-# ## current yr unaged sample: ##
-# EB.noages.lk.catch <- lk.catch.prev %>%
-#   filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
-# nrow(EB.noages.lk.catch)
-# ## current yr compare lencat by age
-# ( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch) )
-# rowSums(alk.freq)
-# 
-# alk <- prop.table(alk.freq,margin=1)
-# round(alk,3)
-# 
-# # current yr predict individual ages from unaged sample:
-# EB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch)
-# 
-# EB.all <- EB.ages.lk.catch.prev %>%
-#   full_join(EB.noages.lk.catch.prev) %>%
-#   full_join(EB.noages.lk.catch) %>%
-#   full_join(EB.ages.lk.catch) %>%
-#   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
-# 
+# # # # # # # # # # # # #
+tmp <- lk.catch.prev %>%
+  dplyr::filter(yearF %in% yr.select,  sp %in% "EB", !is.na(age.num)) %>%
+  select(year, fl, lcat10) %>%
+  arrange(lcat10)
+(lcat10.toosmall.current <- min(tmp$lcat10, na.rm=T)) # cannot predict beyond this minimum so filter out for predicting ages.
+(n.toosmall.current <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& lk.catch.prev$year %in% yr.select)))
+
+## current yr aged sample: ##
+EB.ages.lk.catch <- lk.catch.prev %>%
+  filter(!is.na(age.num)|fl < min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
+## current yr unaged sample: ##
+EB.noages.lk.catch <- lk.catch.prev %>%
+  filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "EB")
+nrow(EB.noages.lk.catch)
+## current yr compare lencat by age
+( alk.freq <- xtabs(~lcat10+age.num,data=EB.ages.lk.catch) )
+rowSums(alk.freq)
+
+alk <- prop.table(alk.freq,margin=1)
+round(alk,3)
+
+# current yr predict individual ages from unaged sample:
+EB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch)
+
+EB.all <- EB.ages.lk.catch.prev %>%
+  full_join(EB.noages.lk.catch.prev) %>%
+  full_join(EB.noages.lk.catch) %>%
+  full_join(EB.ages.lk.catch) %>%
+  mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+
 # fit3.eb <- lm(logL~age.num*yearF, data=EB.all)
 # car::Anova(fit3.eb)
-# 
+#
 # ### Combine RB and EB ###
-# 
-# fish.all <- RB.all %>%
-#  full_join(EB.all)
+#
+ fish.all <- RB.all %>%
+  full_join(EB.all)
 # 
 # 
 # *** alternatively, if do not have two species:
-fish.all <- RB.all
-unique(fish.all$yearF)
+# fish.all <- RB.all
+# unique(fish.all$yearF)
 
 
 # check if signficant difference in length distribution to ages between years
