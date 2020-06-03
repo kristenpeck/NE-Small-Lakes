@@ -7,7 +7,6 @@
 # Github home: https://github.com/kristenpeck/NE-Small-Lakes
 
 
-
 library(readxl)
 library(ggplot2)
 library(plyr)
@@ -20,6 +19,8 @@ library(mapview)
 library(reshape2)
 library(car)
 library(nnet)
+library(gridExtra)
+library(grid)
 
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort); names(effort)
@@ -416,7 +417,7 @@ ggplot(data=RB.catch.selectyr) +
   theme_bw()
 
 
-#lake specific condition-frequency plot
+#lake specific condition-frequency plot : RB
 
 RB.catch.selectlk <- catch %>% 
   filter(sp %in% "RB", surveytype %in% "gillnet") %>% 
@@ -433,6 +434,26 @@ Figure.K.lk
 
 unique(RB.catch.selectlk$year)
 #
+
+#lake specific condition-frequency plot : EB
+
+EB.catch.selectlk <- catch %>% 
+  filter(sp %in% "EB", surveytype %in% "gillnet") %>% 
+  filter(lake %in% lk.select) 
+
+Figure.K.lk.EB <- ggplot(data=EB.catch.selectlk) +
+  geom_histogram(aes(x=k, fill=fl.cat), colour = "black", binwidth= 0.05)+
+  geom_vline(xintercept = 1, linetype="dashed")+
+  facet_wrap(~year, ncol=1)+
+  labs(title = EB.catch.selectlk$lake, y="Frequency", x="Fulton's k", fill="Category")+
+  theme_bw()+
+  scale_fill_manual(values=c("purple", "dark orange", "green"))+
+  theme(legend.position = "bottom")
+Figure.K.lk.EB
+
+unique(EB.catch.selectlk$year)
+
+
 
 ## ## ## ## ## ## ## ##
 #### LENGTH-WEIGHT ####
@@ -484,7 +505,6 @@ back.trans <- cf*10^pred.logwt
 no.wt$m <- as.numeric(back.trans[,1])
 no.wt$pred.m.lwr <- back.trans[,2]
 no.wt$pred.m.upr <- back.trans[,3]
-str(no.wt)
 
 (predRB.catch.selectyr.lk <- wt %>% 
    full_join(no.wt) %>% 
@@ -493,8 +513,7 @@ str(no.wt)
 
 
 
-library(gridExtra)
-library(grid)
+
 
 labelflwt.rb <- paste0("log[10](M) == ", round(fitflwt.rb$coeff[1],2)," + ",
                  round(fitflwt.rb$coeff[2],2)," * log[10](FL)")
@@ -562,7 +581,6 @@ back.trans <- cf*10^pred.logwt
 no.wt.EB$m <- as.numeric(back.trans[,1])
 no.wt.EB$pred.m.lwr <- back.trans[,2]
 no.wt.EB$pred.m.upr <- back.trans[,3]
-str(no.wt.EB)
 
 (predEB.catch.selectyr.lk <- wt.EB %>% 
     full_join(no.wt.EB) %>% 
@@ -637,8 +655,7 @@ plot(stackplots.FLwtALL)
 
 
  fit.growth <- lm(logm~logL*sp, data=predALL.catch.selectyr.lk)
- summary(fit.growth)
- car::Anova(fit.growth) #note, if interaction is present then that should be interpreted before year effect
+ (car::Anova(fit.growth)) #note, if interaction is present then that should be interpreted before year effect
  fit.growth.p <- ifelse(Anova(fit.growth)$Pr[3] < 0.001, "<0.001",Anova(fit.growth)$Pr[3])
 
 
@@ -666,7 +683,7 @@ lk.catch.prev <- catch %>%
   mutate(yearF = as.factor(year)) %>% 
   filter(sp %in% c("RB","EB")) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
-       #filter(age > 1) %>% ## NOTE: this is only for Boot! not for other lakes
+      filter(age > 1) %>% ## NOTE: this is only for Boot! not for other lakes
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 unique(lk.catch.prev$yearF)
@@ -677,6 +694,7 @@ lk.catch.prev.rb <- catch %>%
   filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+    filter(age > 1) %>% ## NOTE: this is only for Boot! not for other lakes
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 
@@ -685,6 +703,7 @@ lk.catch.prev.eb <- catch %>%
   filter(year %in% c(prev.yr, yr.select)) %>% 
   mutate(yearF = as.factor(year)) %>% 
   filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+    filter(age > 1) %>% ## NOTE: this is only for Boot! not for other lakes
   mutate(logm = log10(m),logL = log10(fl)) %>% 
   arrange(yearF)
 
@@ -737,7 +756,7 @@ Figure.FLwt.compare.eb <- ggplot() +
   theme_bw()
 Figure.FLwt.compare.eb
 
-# If EBs present:
+# EB yrs compare present:
 fit2.eb <- lm(logm~logL*yearF, data=lk.catch.prev.eb)
 summary(fit2.eb)
 car::Anova(fit2.eb) #note, if interaction is present then that should be interpreted before year effect
@@ -762,14 +781,15 @@ yr.select <- c("2017")
 
 
 lake.temp <- catch %>% 
-  dplyr::filter(lake %in% lk.select, surveytype %in% "gillnet") %>% 
+  dplyr::filter(lake %in% lk.select) %>% 
+  dplyr::filter(surveytype %in% c("gillnet","carcass count")) %>% 
   arrange(year)
 (sampled.yrs <- unique(lake.temp$year))
 
-(yr.prev <- sampled.yrs[length(sampled.yrs)-1])
+(yr.prev <- sampled.yrs[length(sampled.yrs)-2])
 
 lk.catch.prev <- catch %>% 
-  dplyr::filter(sp %in% c("RB", "EB"), lake %in% lk.select, surveytype %in% "gillnet",
+  dplyr::filter(sp %in% c("RB", "EB"), lake %in% lk.select, surveytype %in% c("gillnet"),
                 year %in% c(yr.select, yr.prev)) %>% 
   #filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(age.num = as.numeric(substr(age,1,1)), yearF=as.character(year)) %>% 
@@ -783,13 +803,13 @@ lk.catch.prev
  
 #### RB Previous year ###
 # # # # # # # # # # # # #
-#
-tmp <- lk.catch.prev %>% 
-  dplyr::filter(yearF %in% yr.prev,  sp %in% "RB", !is.na(age.num)) %>% 
-  select(year, fl, lcat10) %>% 
+
+tmp <- lk.catch.prev %>%
+  dplyr::filter(yearF %in% yr.prev,  sp %in% "RB", !is.na(age.num)) %>%
+  select(year, fl, lcat10) %>%
   arrange(lcat10)
 min(tmp$lcat10, na.rm=T) # cannot predict beyond this minimum so filter out for predicting ages.
-(n.toosmall.prev <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& 
+(n.toosmall.prev <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)&
                                    lk.catch.prev$year %in% yr.prev)))
 
 ## prev.yr aged sample: ##|fl <= 149  ;  &fl >= 150
@@ -798,7 +818,7 @@ RB.ages.lk.catch.prev <- lk.catch.prev %>%
 ## prev.yr unaged sample: ##
 RB.noages.lk.catch.prev <- lk.catch.prev %>%
   dplyr::filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.prev, sp %in% "RB") #note that all Boot samples were aged in 2002, so no need for this
-nrow(RB.noages.lk.catch.prev)
+nrow(RB.noages.lk.catch.prev) #if  no unaged samples, comment out
 
 ## prev.yr compare lencat by age
 ( alk.freq <- xtabs(~lcat10+age.num,data=RB.ages.lk.catch.prev) )
@@ -810,31 +830,8 @@ round(alk,3)
 str(RB.noages.lk.catch.prev)
 # prev.yr predict individual ages from unaged sample (Isermann+Knight 2005 method)
 RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.prev)
-
+# 
 #comment out for Boot 2002 b/c did not have any unmeasured fish (except 1-yr-olds, which also had no length)
-
-
-
-
-# #alt method- modelled age:
-
-# mlr <- nnet::multinom(age.num~lcat10, RB.ages.lk.catch.prev)
-# lens <- seq(min(RB.ages.lk.catch.prev$lcat10, na.rm=T),max(RB.ages.lk.catch.prev$lcat10, na.rm=T),10)
-# alk.sm <- predict(mlr, data.frame(lcat10=lens), type="probs")
-# row.names(alk.sm) <- lens
-# round(alk.sm,3)
-# 
-# #apply length-age key
-# len.n <- xtabs(~lcat10, data=lk.catch.prev)
-# 
-# tmp <- sweep(alk.sm, MARGIN=1, FUN="*", STATS=len.n)
-# ad1 <- colSums(tmp)
-# 
-# round(prop.table(ad1),3)
-# 
-
-
-
 
 
 
@@ -844,9 +841,9 @@ RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.pr
 # # # # # # # # # # # # 
 # 
 # ## current yr aged sample: ##
-tmp <- lk.catch.prev %>% 
-  dplyr::filter(yearF %in% yr.select,  sp %in% "RB", !is.na(age.num)) %>% 
-  select(year, fl, lcat10) %>% 
+tmp <- lk.catch.prev %>%
+  dplyr::filter(yearF %in% yr.select,  sp %in% "RB", !is.na(age.num)) %>%
+  select(year, fl, lcat10) %>%
   arrange(lcat10)
 (lcat10.toosmall.current <- min(tmp$lcat10, na.rm=T)) # cannot predict beyond this minimum so filter out for predicting ages.
 (n.toosmall.current <- length(which(lk.catch.prev$fl < min(tmp$lcat10, na.rm=T)& lk.catch.prev$year %in% yr.select)))
@@ -856,13 +853,16 @@ RB.ages.lk.catch <- lk.catch.prev %>%
 ## current yr unaged sample: ##
 RB.noages.lk.catch <- lk.catch.prev %>%
   dplyr::filter(is.na(age.num)&fl > min(tmp$lcat10, na.rm=T), yearF %in% yr.select,  sp %in% "RB")
-nrow(RB.noages.lk.catch)
+nrow(RB.noages.lk.catch) #if none, comment out
 ## current yr compare lencat by age
 ( alk.freq <- xtabs(~lcat10+age.num,data=RB.ages.lk.catch) )
 rowSums(alk.freq)
 
 alk <- prop.table(alk.freq,margin=1)
 round(alk,3)
+
+
+
 
 # current yr predict individual ages from unaged sample:
 lk.catch.prev %>%
@@ -965,7 +965,7 @@ EB.all <- EB.ages.lk.catch.prev %>%
 
 ### Von Bert. curves: ####
 
-#previous year:
+#RB- previous year:
 yr.prev
 
 prev.RB.all <- RB.all %>% 
@@ -986,6 +986,7 @@ residPlot(fitTyp,loess = T) # if this plot makes a funnel shape, see Ogle's IFAR
 x.prev <- seq(0,max(prev.RB.all$age.num, na.rm=T),length.out=199)        # ages for prediction
 pTyp.prev <- vbTyp(x.prev,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(fitTyp)[3])   # predicted lengths
 
+rb.prev.df <- data.frame(x.prev, pTyp.prev)
 
 ### Trouble-shooting: ###
 
@@ -995,7 +996,7 @@ pTyp.prev <- vbTyp(x.prev,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(f
 #also if there is a small sample size? I think this is another reason parameters cannot be estimated. 
 
 
-#current year:
+# RB - current year:
 
 yr.select
 
@@ -1017,7 +1018,58 @@ residPlot(fitTyp,loess = T) # if this plot makes a funnel shape, see Ogle's IFAR
 
 x.curr <- seq(0,max(curr.RB.all$age.num, na.rm=T),length.out=199)        # ages for prediction
 pTyp.curr <- vbTyp(x.curr,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(fitTyp)[3])
-#pTyp.curr <- vbTyp(x,Linf=max(curr.RB.all$fl,na.rm=TRUE),K=0.3,t0=0)   # THIS IS BOGUS DATA - added in b/c wanted a line...
+
+rb.curr.df <- data.frame(x.curr, pTyp.curr)
+
+
+
+
+# # # EB- previous year: #note doesn't work for Boot - not enough ages
+# yr.prev
+# 
+# prev.EB.all <- EB.all %>% 
+#   dplyr::filter(yearF %in% as.character(yr.prev))
+# names(prev.EB.all)
+# ( svTyp <- vbStarts(fl~age.num,data=prev.EB.all) )
+# svTyp <- list(Linf=max(prev.EB.all$fl,na.rm=TRUE),K=0.3,t0=0)
+# 
+# vbTyp <- function(age,Linf,K,t0) Linf*(1-exp(-K*(age-t0)))
+# fitTyp <- nls(fl~vbTyp(age.num,Linf,K,t0),data=prev.EB.all,start=svTyp)
+# 
+# (prev.EB.all.coeff <- coef(fitTyp))
+# 
+# #confint(fitTyp) #one type of confidence interval...see below for other
+# 
+# residPlot(fitTyp,loess = T) # if this plot makes a funnel shape, see Ogle's IFAR book for alternate method
+# 
+# x.prev <- seq(0,max(prev.EB.all$age.num, na.rm=T),length.out=199)        # ages for prediction
+# pTyp.prev <- vbTyp(x.prev,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(fitTyp)[3])   # predicted lengths
+# 
+# 
+# # EB - current year:
+# 
+# yr.select
+# 
+# curr.EB.all <- EB.all %>% 
+#   dplyr::filter(yearF %in% (yr.select))
+# names(curr.EB.all)
+# ( svTyp <- vbStarts(fl~age.num,data=curr.EB.all) )
+# svTyp <- list(Linf=max(curr.EB.all$fl,na.rm=TRUE),K=0.3,t0=0)
+# 
+# vbTyp <- function(age,Linf,K,t0) Linf*(1-exp(-K*(age-t0)))
+# 
+# fitTyp <- nls(fl~vbTyp(age.num,Linf,K,t0),data=curr.EB.all,start=svTyp)
+# 
+# curr.EB.all.coeff <- coef(fitTyp)
+# 
+# confint(fitTyp) #one type of confidence interval...see below for other
+# 
+# residPlot(fitTyp,loess = T) # if this plot makes a funnel shape, see Ogle's IFAR book for alternate method
+# 
+# x.curr <- seq(0,max(curr.EB.all$age.num, na.rm=T),length.out=199)        # ages for prediction
+# pTyp.curr <- vbTyp(x.curr,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(fitTyp)[3])
+# #pTyp.curr <- vbTyp(x,Linf=max(curr.EB.all$fl,na.rm=TRUE),K=0.3,t0=0)   # THIS IS BOGUS DATA - added in b/c wanted a line...
+
 
 
 #Von B labels:
@@ -1028,28 +1080,24 @@ pTyp.curr <- vbTyp(x.curr,Linf=coef(fitTyp)[1], K = coef(fitTyp)[2], t0 = coef(f
                            "*","(1-exp(-",round(prev.RB.all.coeff[2],2),
                            "*","(age - ",round(prev.RB.all.coeff[3],2),"))"))
 
-      
-
-
-
 #shape=aged.predict     shape="aging", #remove if no samples were predicted 
 
 # plot with von B, measured and predicted ages
 
 
-fish.ages.plot <- ggplot()+
-  geom_jitter(data=fish.all, aes(x=age.num, y=fl, col=yearF, shape=aged.predict),width = 0.15,
+fish.ages.plot <- ggplot(RB.all)+
+  geom_jitter(data=RB.all, aes(x=age.num, y=fl, col=yearF, shape=aged.predict),width = 0.15,
               size=3, alpha=0.6)+
   #geom_smooth(data=fish.all, aes(x=age.num, y=fl, col=yearF), method="loess")+
-  geom_line(aes(x=x.prev, y=pTyp.prev), col="black", size=1.5)+
-  geom_line(aes(x=x.curr, y=pTyp.curr), col="purple", size=1.5)+
-  annotate(geom = "text", x = 5, y = 50, label = label.currentyr, parse=F)+
-  annotate(geom = "text", x = 5, y = 20, label = label.prevyr, parse=F)+
-  scale_x_continuous(breaks = seq(min(fish.all$age.num, na.rm=T), max(fish.all$age.num, na.rm=T),1),
+  geom_line(data=rb.prev.df, aes(x=x.prev, y=pTyp.prev), col="black", size=1.5)+
+  geom_line(data=rb.curr.df, aes(x=x.curr, y=pTyp.curr), col="purple", size=1.5)+
+  annotate(geom = "text", x = max(RB.all$age.num, na.rm=T)-1, y = 50, label = label.currentyr, parse=F)+
+  annotate(geom = "text", x = max(RB.all$age.num, na.rm=T)-1, y = 10, label = label.prevyr, parse=F)+
+  scale_x_continuous(breaks = seq(1, max(RB.all$age.num, na.rm=T),1),
                      minor_breaks = 1)+
-  scale_y_continuous(limits = c(0,max(fish.all$fl+25, na.rm=T)), 
-                                breaks = seq(0, max(fish.all$fl+50, na.rm=T),100))+
-  #facet_wrap(~sp, ncol=2)+
+  scale_y_continuous(limits = c(0,max(RB.all$fl+25, na.rm=T)), 
+                                breaks = seq(0, max(RB.all$fl+50, na.rm=T),100))+
+  #facet_wrap(~sp)+
   scale_colour_manual(values=c("black", "purple"))+
   labs(x="Age", y="Fork Length (mm)", colour="Year:", shape="Ages:")+
   theme_bw()+
@@ -1062,22 +1110,57 @@ fish.ages.plot
 
  #
 
+### MORTALITY ####
+# note that this is unlikely to work if there are fewer than 5 ages in the catch
+
+curr.RB.all <- RB.all %>% 
+  dplyr::filter(yearF %in% (yr.select)) %>% 
+  dplyr::filter(!is.na(age.num)) %>% 
+  group_by(age.num) %>% 
+  summarize(catch=length(age.num))
+
+ggplot(curr.RB.all)+
+  geom_point(aes(x=age.num, y=catch))
+#
+prev.RB.all <- RB.all %>% 
+  dplyr::filter(yearF %in% (prev.yr)) %>% 
+  dplyr::filter(!is.na(age.num)) %>% 
+  group_by(age.num) %>% 
+  summarize(catch=length(age.num))
+
+ggplot(prev.RB.all)+
+  geom_point(aes(x=age.num, y=catch))
+
+
+##
+curr.EB.all <- EB.all %>% 
+  dplyr::filter(yearF %in% (yr.select)) %>% 
+  dplyr::filter(!is.na(age.num)) %>% 
+  group_by(age.num) %>% 
+  summarize(catch=length(age.num))
+
+ggplot(curr.EB.all)+
+  geom_point(aes(x=age.num, y=catch))
+
+#
+
+prev.EB.all <- EB.all %>% 
+  dplyr::filter(yearF %in% (prev.yr)) %>% 
+  dplyr::filter(!is.na(age.num)) %>% 
+  group_by(age.num) %>% 
+  summarize(catch=length(age.num))
+
+ggplot(prev.EB.all)+
+  geom_point(aes(x=age.num, y=catch))
+
+#
 
 
 
 
-# The following does not work if fl outside the aged fls, but is likely more accurate:
-# library(nlstools)
-# bootTyp <- nlsBoot(fitTyp)
-# headtail(bootTyp$coefboot,n=2)
-# 
-# confint(bootTyp,plot=TRUE)
 
 
-
-
-
-
+## EXTRAS ####
 
 # #take a look at proportional size distribution again with Gabelhouse rules
 # rb.cuts <- psdVal("Rainbow Trout")
