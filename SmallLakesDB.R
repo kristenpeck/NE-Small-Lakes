@@ -791,9 +791,9 @@ lake.temp <- catch %>%
 lk.catch.prev <- catch %>% 
   dplyr::filter(sp %in% c("RB", "EB"), lake %in% lk.select, surveytype %in% c("gillnet"),
                 year %in% c(yr.select, yr.prev)) %>% 
-  #filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
+  filter(fl >= 162 | fl <= 130) %>% #this will make 6-panel and 7-panel nets more equal
   mutate(age.num = as.numeric(substr(age,1,1)), yearF=as.character(year)) %>% 
-  filter(age.num > 1) %>% ## NOTE: this is only for Boot! delete for other lakes
+  filter(age.num > 1 | is.na(age.num)) %>% ## NOTE: this is only for Boot! delete for other lakes
   mutate(broodyear = ifelse(!is.na(age.num),year-age.num, NA)) %>% 
   mutate(lcat10=lencat(fl, w=10))
 lk.catch.prev
@@ -801,7 +801,7 @@ lk.catch.prev
 
 #### Predict ages (ALK):####
  
-#### RB Previous year ###
+#### RB Previous year ### # comment out if lake did not have any unmeasured ages to predict
 # # # # # # # # # # # # #
 
 tmp <- lk.catch.prev %>%
@@ -830,7 +830,9 @@ round(alk,3)
 str(RB.noages.lk.catch.prev)
 # prev.yr predict individual ages from unaged sample (Isermann+Knight 2005 method)
 RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.prev)
-# 
+
+
+
 #comment out for Boot 2002 b/c did not have any unmeasured fish (except 1-yr-olds, which also had no length)
 
 
@@ -840,7 +842,7 @@ RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.pr
 # #### RB Current year ###
 # # # # # # # # # # # # 
 # 
-# ## current yr aged sample: ##
+## current yr aged sample: ##
 tmp <- lk.catch.prev %>%
   dplyr::filter(yearF %in% yr.select,  sp %in% "RB", !is.na(age.num)) %>%
   select(year, fl, lcat10) %>%
@@ -869,19 +871,21 @@ lk.catch.prev %>%
   dplyr::filter(!is.na(age.num), yearF %in% yr.prev, sp %in% "RB")
 RB.noages.lk.catch <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch)
 
-
+#
 RB.all <- RB.ages.lk.catch.prev %>%
   full_join(RB.noages.lk.catch.prev) %>%
   full_join(RB.noages.lk.catch) %>%
   full_join(RB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
-str(RB.all)
+
+RB.all
 
 
 
 # # # # # # # # # # # 
-# #### EB Previous year ### Applicable to Heart Lake, Boot Lake, and One Island
+# #### EB Previous year ### comment out if no EB or not unaged EB
 # # # # # # # # # # # # 
+
 tmp <- lk.catch.prev %>%
   dplyr::filter(yearF %in% yr.prev,  sp %in% "EB", !is.na(age.num)) %>%
   select(year, fl, lcat10) %>%
@@ -906,6 +910,7 @@ round(alk,3)
 
 # prev.yr predict individual ages from unaged sample:
 EB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=EB.noages.lk.catch.prev)
+
 
 # # # # # # # # # # # # #
 # # #### EB Current year ###
@@ -939,6 +944,7 @@ EB.all <- EB.ages.lk.catch.prev %>%
   full_join(EB.noages.lk.catch) %>%
   full_join(EB.ages.lk.catch) %>%
   mutate(aged.predict = ifelse(is.na(age), "predicted","measured"))
+EB.all
 
 # fit3.eb <- lm(logL~age.num*yearF, data=EB.all)
 # car::Anova(fit3.eb)

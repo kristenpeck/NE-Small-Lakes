@@ -2,7 +2,9 @@
 title: "Boot_Results2017"
 author: "KP"
 date: "01/06/2020"
-output: word_document
+output:
+  word_document:
+    reference_docx: "Template_doc.docx"
 ---
 
 ```{r setup, include=FALSE}
