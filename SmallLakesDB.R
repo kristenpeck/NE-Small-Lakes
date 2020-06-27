@@ -397,7 +397,7 @@ Figure.FL.yr
 
 
 
-#### RB FL frequency, by stock category ####
+#### RB FL condition, by stock category ####
 
 RB.catch.selectyr <- catch.selectyr %>% 
   filter(sp %in% "RB")
@@ -708,7 +708,7 @@ lk.catch.prev.eb <- catch %>%
   arrange(yearF)
 
 
-#length-weight plot - compare years (generic)
+#length-weight plot - compare years (generic or for both species)
 
 Figure.FLwt.compare <- ggplot() +
   geom_point(data=lk.catch.prev, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
@@ -720,7 +720,7 @@ Figure.FLwt.compare <- ggplot() +
                       labels = c(unique(lk.catch.prev$year)[1],unique(lk.catch.prev$year)[2]),
                      values=c(17, 19))+
   facet_wrap(~sp)+
-  labs(title=lk.catch.prev$lake, x= "log10 Fork Length", y="log10 Mass")+
+  labs(x= "log10 Fork Length", y="log10 Mass")+ #title=lk.catch.prev$lake, 
   theme_bw()
 Figure.FLwt.compare
 
@@ -734,7 +734,7 @@ Figure.FLwt.compare.rb <- ggplot() +
   scale_shape_manual(name="Year",
                      labels = c(unique(lk.catch.prev.rb$year)[1],unique(lk.catch.prev.rb$year)[2]),
                      values=c(17, 19))+
-  labs(title=paste(lk.catch.prev.rb$lake,"RB"), x= "log10 Fork Length", y="log10 Mass")+
+  labs(x= "log10 Fork Length", y="log10 Mass")+ #title=paste(lk.catch.prev.rb$lake,"RB"), 
   theme_bw()
 Figure.FLwt.compare.rb
 
@@ -752,7 +752,7 @@ Figure.FLwt.compare.eb <- ggplot() +
   scale_shape_manual(name="Year",
                      labels = c(unique(lk.catch.prev.eb$year)[1],unique(lk.catch.prev.eb$year)[2]),
                      values=c(17, 19))+
-  labs(title=paste(lk.catch.prev$lake, "EB"), x= "log10 Fork Length", y="log10 Mass")+
+  labs( x= "log10 Fork Length", y="log10 Mass")+ #title=paste(lk.catch.prev$lake, "EB"),
   theme_bw()
 Figure.FLwt.compare.eb
 
@@ -833,7 +833,6 @@ RB.noages.lk.catch.prev <- alkIndivAge(alk,age.num~fl,data=RB.noages.lk.catch.pr
 
 
 
-#comment out for Boot 2002 b/c did not have any unmeasured fish (except 1-yr-olds, which also had no length)
 
 
 
@@ -1033,7 +1032,7 @@ rb.curr.df <- data.frame(x.curr, pTyp.curr)
 # # # EB- previous year: #note doesn't work for Boot - not enough ages
 # yr.prev
 # 
-# prev.EB.all <- EB.all %>% 
+# prev.EB.all <- EB.all %>%
 #   dplyr::filter(yearF %in% as.character(yr.prev))
 # names(prev.EB.all)
 # ( svTyp <- vbStarts(fl~age.num,data=prev.EB.all) )
@@ -1056,7 +1055,7 @@ rb.curr.df <- data.frame(x.curr, pTyp.curr)
 # 
 # yr.select
 # 
-# curr.EB.all <- EB.all %>% 
+# curr.EB.all <- EB.all %>%
 #   dplyr::filter(yearF %in% (yr.select))
 # names(curr.EB.all)
 # ( svTyp <- vbStarts(fl~age.num,data=curr.EB.all) )
@@ -1079,10 +1078,10 @@ rb.curr.df <- data.frame(x.curr, pTyp.curr)
 
 
 #Von B labels:
-(label.currentyr <- paste0(yr.select,": ",round(curr.RB.all.coeff[1],2),
+(label.RBcurrentyr <- paste0(yr.select,": ",round(curr.RB.all.coeff[1],2),
                  "*","(1-exp(-",round(curr.RB.all.coeff[2],2),
                  "*","(age - ",round(curr.RB.all.coeff[3],2),"))"))
-(label.prevyr <- paste0(yr.prev,": ",round(prev.RB.all.coeff[1],2),
+(label.RBprevyr <- paste0(yr.prev,": ",round(prev.RB.all.coeff[1],2),
                            "*","(1-exp(-",round(prev.RB.all.coeff[2],2),
                            "*","(age - ",round(prev.RB.all.coeff[3],2),"))"))
 
@@ -1091,14 +1090,14 @@ rb.curr.df <- data.frame(x.curr, pTyp.curr)
 # plot with von B, measured and predicted ages
 
 
-fish.ages.plot <- ggplot(RB.all)+
+fish.ages.plot.RB <- ggplot(RB.all)+
   geom_jitter(data=RB.all, aes(x=age.num, y=fl, col=yearF, shape=aged.predict),width = 0.15,
               size=3, alpha=0.6)+
   #geom_smooth(data=fish.all, aes(x=age.num, y=fl, col=yearF), method="loess")+
   geom_line(data=rb.prev.df, aes(x=x.prev, y=pTyp.prev), col="black", size=1.5)+
   geom_line(data=rb.curr.df, aes(x=x.curr, y=pTyp.curr), col="purple", size=1.5)+
-  annotate(geom = "text", x = max(RB.all$age.num, na.rm=T)-1, y = 50, label = label.currentyr, parse=F)+
-  annotate(geom = "text", x = max(RB.all$age.num, na.rm=T)-1, y = 10, label = label.prevyr, parse=F)+
+  annotate(geom = "text", x = max(RB.all$age.num, na.rm=T)-1, y = 50, label = label.RBcurrentyr, parse=F)+
+  annotate(geom = "text", x = max(RB.all$age.num, na.rm=T)-1, y = 10, label = label.RBprevyr, parse=F)+
   scale_x_continuous(breaks = seq(1, max(RB.all$age.num, na.rm=T),1),
                      minor_breaks = 1)+
   scale_y_continuous(limits = c(0,max(RB.all$fl+25, na.rm=T)), 
@@ -1109,7 +1108,7 @@ fish.ages.plot <- ggplot(RB.all)+
   theme_bw()+
   theme(legend.position = "bottom")
 
-fish.ages.plot
+fish.ages.plot.RB
 
 
 

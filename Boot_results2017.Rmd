@@ -23,13 +23,13 @@ Ages were predicted for individual fish without measured ages using a length-age
 
 ## Results
 
-The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. In 2017, eastern brook trout gained mass more quickly than rainbow trout as their length increased (p `r fit.growth.p`). From 2002 to 2017, the gain of mass per increment of fork length did not differ greatly for either rainbow trout (p = `r p.flwtyrs.RB`) or eastern brook trout (p= `r p.flwtyrs.EB`).
+The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. In 2017, eastern brook trout gained mass more quickly than rainbow trout as their length increased (p `r fit.growth.p`). From 2002 to 2017, the gain of mass per increment of fork length did not differ greatly for either rainbow trout (p = `r p.flwtyrs.RB`) or eastern brook trout (p = `r p.flwtyrs.EB`).
 
 
 
 ## Tables
 
-Table 1. Summary of catch for Boot Lake gillnet sampling in September 2017. Catch was summarized by number of fish caught (n), fork length (FL; mm), mass (M; g), and condition factor (K) mean and range. Catch-per-unit-effort (CPUE) is calculated as number of fish caught per hour of gillnet fishing.
+Table 1. Summary of eastern brook trout (EB) and rainbow trout (RB) catch during Boot Lake gillnet sampling in September 2017. Catch was summarized by number of fish caught (n), fork length (FL; mm), mass (M; g), and condition factor (K) mean and range. Catch-per-unit-effort (CPUE) is calculated as number of fish caught per hour of gillnet fishing.
 ```{r Tables, echo=F, results='asis'}
 library(knitr)
 kable(Table1.boot)
@@ -38,37 +38,40 @@ kable(Table1.boot)
 
 ## Figures
 
-```{r Figure.env, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, fig.cap= "Figure env: Vertical profile of temperature and dissolved oxygen at a deep part of Boot Lake in September, 2017"}
+```{r Figure.env, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300,fig.cap= "Figure 2: Vertical profile of temperature and dissolved oxygen at a deep part of Boot Lake in September, 2017"}
 plot(Figure.env)
 
 ```
 
-```{r Figure-FL freq, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, fig.cap= "Figure FL hist: Frequency of lengths of species caught during the survey on Boot Lake in September 2002 and September 2017: EB = eastern brook trout, LKC = lake chub, and RB = rainbow trout. "}
+```{r Figure-FL freq, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, dpi=300,fig.cap= "Figure 3. The frequency of measured fork lengths of eastern brook trout (EB, pink bars), rainbow trout (RB, blue bars), and lake chub (LKC, green bars) caught in gillnet sampling of Boot Lake, July 2002 and September 2017. "}
 plot(Figure.FL.yr)
 
 ```
 
-```{r Figure-K freq RB, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, fig.cap= "Figure condition: Frequency of Fulton's condition factor from rainbow trout caught in 2002 and 2017. lengths of species caught during the survey on Boot Lake in September 2002 and September 2017: Sub_stock < 200 mm, Stock between 200 and 400 mm, Quality between 400 and 550 mm and Trophy > 550mm."}
+```{r Figure-K freq RB, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, dpi=300,fig.cap= "Figure condition: Frequency of Fulton's condition factor from rainbow trout caught in 2002 and 2017. lengths of species caught during the survey on Boot Lake in September 2002 and September 2017: Sub_stock < 200 mm, Stock between 200 and 400 mm, Quality between 400 and 550 mm and Trophy > 550mm. Vertical dotted line indicates a condition factor of 1."}
 plot(Figure.K.lk)
 ```
 
-```{r Figure-K freq EB, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, fig.cap= "Figure condition: Frequency of Fulton's condition factor from eastern brook trout caught in 2002 and 2017. lengths of species caught during the survey on Boot Lake in September 2002 and September 2017: Sub_stock < 200 mm, Stock between 200 and 400 mm, Quality between 400 and 550 mm and Trophy > 550mm."}
+```{r Figure-K freq EB, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, dpi=300,fig.cap= "Figure condition: Frequency of Fulton's condition factor from eastern brook trout caught in 2002 and 2017. lengths of species caught during the survey on Boot Lake in September 2002 and September 2017: Sub_stock < 200 mm, Stock between 200 and 400 mm, Quality between 400 and 550 mm and Trophy > 550mm."}
 plot(Figure.K.lk.EB)
 ```
 
 
-```{r FigureFL-wtRB-EB, echo=F, results='asis', warning = FALSE, fig.height=8, fig.width=6, fig.cap= "Figure : Length-mass relationship of rainbow (blue triangles) and brook trout (pink circles) catch from Boot Lake 2017. The top panel shows the fork length to mass relationship with a loess smoother, and the bottom panel is log10 transformed with a linear regression line and equation of relationship. The shaded area around the lines are SE."}
+```{r FigureFL-wtRB-EB, echo=F, results='asis', warning = FALSE, fig.height=8, fig.width=6, dpi=300,fig.cap= "Figure : Length-mass relationship of rainbow (blue triangles) and brook trout (pink circles) catch from Boot Lake 2017. The top panel shows the fork length to mass relationship with a loess smoother, and the bottom panel is log10 transformed with a linear regression line and equation of relationship. The shaded area around the lines are SE."}
 plot(stackplots.FLwtALL)
 
 ```
 
 
-```{r FigureFL-wt-yrs, echo=F, results='asis', warning = FALSE, fig.height=8, fig.width=6, fig.cap= "Figure : Length-mass relationship of rainbow (blue triangles) and brook trout (pink circles) catch from Boot Lake 2017. The top panel shows the fork length to mass relationship with a loess smoother, and the bottom panel is log10 transformed with a linear regression line and equation of relationship. The shaded area around the lines are SE."}
+```{r FigureFL-wt-yrs, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300,fig.cap= "Figure : Log fork length versus log mass comparing eastern brook trout (left panel) and rainbow trout (right panel) from a previous survey in 2002 with the 2017 survey. The lines are linear regression of each year’s measurements with standard error shading. Age ones were not measured in 2002. Age one fish and all lengths between 130 and 162 mm were removed to better compare 6- and 7-panel nets."}
 plot(Figure.FLwt.compare)
 
 ```
 
 
+```{r Figure RB ages, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300, fig.cap= "Figure : Length at age with Von Bertallanfy growth curves for rainbow trout in July 2002 and September 2017. Circles are measured ages and triangles are ages predicted from an age-length key. Points were jittered horizontally at each age for improved viewing. Age one fish and all lengths between 130 and 162 mm were removed to better compare 6- and 7-panel nets."}
+plot(fish.ages.plot.RB)
 
+```
 
 
