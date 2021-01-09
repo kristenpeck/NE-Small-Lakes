@@ -72,6 +72,9 @@ effort.selectyr <- effort %>%
 
 
 
+
+
+
 #need to put start and end coordinates in same columns, then re-project
 
 locations.easting <- effort.selectyr %>% 
