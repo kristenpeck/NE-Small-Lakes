@@ -25,6 +25,7 @@ library(grid)
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort); names(effort)
 
+
 TableA1.rawdata <- effort %>% 
   select(Lake=lake, Year=year, Crew=crew, `Effort ID`=effortid, `Net Type`=nettype, `Set Date`=setdate,
          `Lift Date`=liftdate, `Set Time`=settime, `Lift Time`=lifttime, `Temp. (deg C)`=temp)
