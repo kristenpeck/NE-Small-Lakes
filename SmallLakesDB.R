@@ -22,9 +22,10 @@ library(nnet)
 library(gridExtra)
 library(grid)
 
+### Load Effort Data ####
+
 effort <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Effort")
 str(effort); names(effort)
-
 
 TableA1.rawdata <- effort %>% 
   select(Lake=lake, Year=year, Crew=crew, `Effort ID`=effortid, `Net Type`=nettype, `Set Date`=setdate,
@@ -36,6 +37,8 @@ catch <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Catch", na = "NA",
                                   "guess","guess","guess","guess","guess",
                                   "guess","numeric","text","text", "guess",
                                   "guess","guess", "guess"))
+
+### Load Catch Data ####
 
 catch <- catch %>% 
   mutate(fl.cat = lencat(fl, breaks= c(Sub_stock=0,Stock=200, Quality=400, 
@@ -56,11 +59,51 @@ TableA2.rawdata <- catch %>%
 write.csv(TableA2.rawdata, "TableA2.rawdata.csv", row.names = F, na = "")
 
 
+
+### Load env. Data ####
+
 env <- read_excel("SmallLakesDB-copy.xlsx",sheet = "Enviro", na = "NA")
 str(env)
 
 
+### CTD profiles ####
 
+yr.select <- c(2017)
+lk.select <- c("Boot")
+
+
+env.selectyr <- env %>% 
+  mutate(year = year(date)) %>% 
+  filter(year %in% yr.select) %>% 
+  gather("var","value",tempdown, dodown, -conddown)
+
+env.selectyrlk <- env %>% 
+  mutate(year = year(date)) %>% 
+  filter(year %in% yr.select) %>% 
+  filter(lake %in% lk.select) %>% 
+  gather("var","value",tempdown, dodown, -conddown)
+
+Figure.env <- ggplot(data=env.selectyrlk)+
+  geom_path(aes(x=value, y=depthdown, colour=var), size=1.5)+
+  scale_y_reverse(name= "Depth (m)", 
+                  breaks=seq(min(env.selectyrlk$depthdown, na.rm=T),
+                             max(env.selectyrlk$depthdown, na.rm=T), 1))+
+  # scale_x_continuous(name = "",breaks=seq(floor(min(env.selectyrlk$value, na.rm=T)),
+  #                                         ceiling(max(env.selectyrlk$value, na.rm=T)),1))+
+  scale_colour_manual(values=c("black", "gray60"),
+                      name = "",labels = c("Diss. Oxygen (mg/L)","Temp. (deg C)"))+
+  facet_wrap(~year, ncol=2)+
+  theme_bw()
+Figure.env
+
+# NOTE: no environmental data taken from:
+# 2017 - Moose, Inga, Sundance
+# 2018 - all measured!
+# 2019 - Sundance
+
+
+
+#### Maps ####
 
 #### Maps- Select Year-Effort ####
 
@@ -68,12 +111,6 @@ yr.select <- c(2017)
 
 effort.selectyr <- effort %>% 
   filter(year %in% yr.select)
-
-#### Maps ####
-
-
-
-
 
 
 #need to put start and end coordinates in same columns, then re-project
@@ -100,6 +137,10 @@ str(locations)
 
 #no coords for Heart or Stewart, 2018; Inga 2017
 
+
+
+
+
 # Figure 1 - overview map: ###
 
 locations.lk <- locations %>% 
@@ -109,19 +150,19 @@ locations.lk <- locations %>%
 
 lk.overview.map <- mapview(locations.lk, cex=2, lwd=1, legend=F,map.types="OpenStreetMap") %>% 
   leafem::addStaticLabels(label = locations.lk$lake,
-                  noHide = F,
+                  noHide = T,
                   direction = 'top',
                   textOnly = TRUE,
                   textsize = "20px")
 
-print(lk.overview.map) #not printing?? *** TO FIX ****
+print(lk.overview.map) 
 
 
 #### Appendix: gillnets maps: ###
 
 unique(locations.lk$lake)
 
-lk.select <- "Moose"
+lk.select <- "Boot"
 
 indiv.nets <- locations %>% 
   filter(lake %in% lk.select)
@@ -132,18 +173,31 @@ indiv.nets.st <- st_as_sf(indiv.nets,
 
 lks.albers <- st_transform(indiv.nets.st, crs=3005)
 
+#### Maps- Select Year-ENV ####
+
+yr.select <- c(2017)
+
+env.selectyr <- env %>% 
+  mutate(year = year(date)) %>% 
+  filter(year %in% yr.select, lake %in% lk.select) 
+
+env.point.yr <- env.selectyr %>% 
+  st_as_sf(coords = c("easting", "northing"), 
+           crs = 3157) 
+
+
 
 #overview map alternative - did not use because ugly
 
-#library(bcdata)
-
-# bc <- bcdc_query_geodata('7-5m-provinces-and-states-the-atlas-of-canada-base-maps-for-bc') %>% 
-#   filter(ENGLISH_NAME == 'British Columbia') %>% 
+# library(bcdata)
+# 
+# bc <- bcdc_query_geodata('7-5m-provinces-and-states-the-atlas-of-canada-base-maps-for-bc') %>%
+#   filter(ENGLISH_NAME == 'British Columbia') %>%
 #   collect()
 # bc
 # 
-# Peace <- bcdc_query_geodata('WHSE_ADMIN_BOUNDARIES.EADM_WLAP_REGION_BND_AREA_SVW') %>% 
-#   filter(REGION_NAME == 'Peace') %>% 
+# Peace <- bcdc_query_geodata('WHSE_ADMIN_BOUNDARIES.EADM_WLAP_REGION_BND_AREA_SVW') %>%
+#   filter(REGION_NAME == 'Peace') %>%
 #   collect()
 # Peace
 # 
@@ -155,102 +209,40 @@ lks.albers <- st_transform(indiv.nets.st, crs=3005)
 # lks.individual <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
 #   filter(INTERSECTS(lks.albers)) %>%
 #   collect()
-
-# net.lines<- lks.albers %>% 
-#   dplyr::group_by(lake, effortidF) %>% 
-#   dplyr::summarize() %>% 
-#   st_cast("LINESTRING") # this suddenly is not working?? To work on later...
-#     
-# net.lines<- lks.albers %>% 
-#   filter(effortidF %in% c("1","2")) %>% 
-#   group_by(lake, nettype) %>% 
-#   dplyr::summarize() %>% 
-#   st_cast("LINESTRING") 
-# plot(net.lines)
-
-      # ggplot()+
-      #   geom_sf(data=bc, fill="white")+
-      #   geom_sf(data=Peace, fill="tan")+
-      #   geom_sf(data=lks.mapping, col="blue")+
-      #   geom_sf(data=lks.albers, size=2)
-
-# Appendix - plot nets at individual lakes
-
-# lk.select <- "Moose"
-# 
-# lk.nets.select <- lks.albers %>% 
-#   filter(lake %in% lk.select)
-# 
-# lk.net.lines.select <- net.lines %>% 
-#   filter(lake %in% lk.select)
-
-#could not get a good enough basemap so did not use the following:
-# lks.outline.select <- bcdc_query_geodata('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') %>%
-#   filter(INTERSECTS(lk.nets.select)) %>%
-#   collect()
-# 
-# background <- st_buffer(st_as_sfc(st_bbox(lks.outline.select),crs=3005),100)
-# roads <- bcdc_query_geodata("bb060417-b6e6-4548-b837-f9060d94743e") %>% 
-#   filter(INTERSECTS(background)) %>% 
-#   collect() %>% 
-#   st_crop(background)
-# 
 # ggplot()+
-#   geom_sf(data=roads, colour="tan")+
-#   geom_sf(data=lks.outline.select, fill="light blue")+
-#   geom_sf(data=lk.net.lines.select, aes(colour=nettype))+
-#   geom_sf(data=lk.nets.select, aes(colour=nettype))+
-#   ggtitle(paste(lake.select, "Lake"))+
-#   scale_colour_grey()
+#   geom_sf(data=bc, fill="white")+
+#   geom_sf(data=Peace, fill="tan")+
+#   geom_sf(data=lks.mapping, col="blue")+
+#   geom_sf(data=lks.albers, size=2)
 
 
-# mapview(lk.net.lines.select, zcol="nettype",lwd=2, legend=T,map.types="Esri.WorldImagery",layer.name="Net Type",
-#         color = c("gray50","white"))
+mapview(lks.albers)
 
-#
+# net.lines<- lks.albers %>%
+#   dplyr::group_by(lake, effortidF) %>%
+#   dplyr::summarize() %>%
+#   st_cast("LINESTRING") 
+
+net.lines<- lks.albers %>%
+  filter(effortidF %in% c("1","2","3")) %>%
+  group_by(lake, effortidF, nettype) %>%
+  dplyr::summarize() %>%
+  st_cast("LINESTRING")
+
+#this is setting the default colours for all mapviews
+mapviewOptions(vector.palette = colorRampPalette(c("white", "cornflowerblue", "grey60")))
 
 
+net.lines.map <- mapview(list(net.lines,lks.albers), 
+                         zcol="nettype", 
+                         col.lines = c("snow", "grey"),
+                         layer.name = "Net Type",
+                         legend = list(TRUE, FALSE),
+                         lwd=2) + mapview(env.point.yr, layer.name = "Env. station")
+
+print(net.lines.map) #failed to label nets though... not sure why
 
 
-
-
-
-### CTD profiles ####
-
-yr.select <- 2017
-lk.select <- "Boot"
-
-
-env.selectyr <- env %>% 
-  mutate(year = year(date)) %>% 
-  filter(year %in% yr.select) %>% 
-  gather("var","value",tempdown, dodown, -conddown)
-
-env.selectyrlk <- env %>% 
-  mutate(year = year(date)) %>% 
-  filter(year %in% yr.select) %>% 
-  filter(lake %in% lk.select) %>% 
-  gather("var","value",tempdown, dodown, -conddown)
-
-Figure.env <- ggplot(data=env.selectyrlk)+
-  geom_path(aes(x=value, y=depthdown, colour=var), size=1.5)+
-  scale_y_reverse(name= "Depth (m)", 
-                  breaks=seq(min(env.selectyrlk$depthdown, na.rm=T),
-                             max(env.selectyrlk$depthdown, na.rm=T), 1))+
-  scale_x_continuous(name = "",breaks=seq(floor(min(env.selectyrlk$value, na.rm=T)),
-                                          ceiling(max(env.selectyrlk$value, na.rm=T)),1))+
-  scale_colour_manual(values=c("black", "gray60"),
-                      name = "",labels = c("Diss. Oxygen (mg/L)","Temp. (deg C)"))+
-  facet_wrap(~lake, ncol=2)+
-  theme_bw()
-Figure.env
-
-# NOTE: no environmental data taken from:
-  # 2017 - Moose, Inga, Sundance
-  # 2018 - all measured!
-  # 2019 - Sundance
-
-#
 
 
 
@@ -270,9 +262,10 @@ catch.effort.selectyr <- full_join(effort.selectyr, catch.selectyr, by=c("lake",
 #### Tables - CPUE, demographics ####
 
 str(catch.effort.selectyr)
+unique(catch.effort.selectyr$sp)
 
 Table1 <- catch.effort.selectyr %>% 
-  filter(sp %in% c("RB","EB")) %>% 
+  filter(sp %in% c("RB","EB","SU","NP")) %>% 
   dplyr::group_by(lake,sp, effortid) %>% 
   dplyr::summarise(`Soak Time (hrs)`=sum(unique(efforthr)), `Net Type`=paste(unique(nettype),collapse=","), 
                    Year=unique(year),`Species`=paste(unique(sp), collapse=","),n = length(unique(catchID)),
@@ -308,6 +301,39 @@ Table1.boot <- Table1 %>%
          `Mean K (range)`, CPUE) %>% 
   arrange(sp,`Net Type`)
 Table1.boot
+
+Table1.stony <- Table1 %>% 
+  filter(lake %in% "Stony") %>% 
+  mutate(`Mean FL (range)`=paste0(round(`FL mean`,2)," (",`FL range (mm)`,")")) %>% 
+  mutate(`Mean M (range)`=paste0(round(`m mean`,2)," (",`m range (g)`,")")) %>% 
+  mutate(`Mean K (range)` = paste0(round(`k mean`, 2)," (", `k range`, ")")) %>% 
+  mutate(`Soak Time (hrs)` = round(`Soak Time (hrs)`, 2)) %>% 
+  select(lake, Year, sp,`Net Type`,`Soak Time (hrs)`, n, `Mean FL (range)`,`Mean M (range)`,
+         `Mean K (range)`, CPUE)
+Table1.stony
+
+Table1.big <- Table1 %>% 
+  filter(lake %in% "Big") %>% 
+  mutate(`Mean FL (range)`=paste0(round(`FL mean`,2)," (",`FL range (mm)`,")")) %>% 
+  mutate(`Mean M (range)`=paste0(round(`m mean`,2)," (",`m range (g)`,")")) %>% 
+  mutate(`Mean K (range)` = paste0(round(`k mean`, 2)," (", `k range`, ")")) %>% 
+  mutate(`Soak Time (hrs)` = round(`Soak Time (hrs)`, 2)) %>% 
+  select(lake, Year, sp,`Net Type`,`Soak Time (hrs)`, n, `Mean FL (range)`,`Mean M (range)`,
+         `Mean K (range)`, CPUE)
+Table1.big
+
+Table1.wright <- Table1 %>% 
+  filter(lake %in% "Wright") %>% 
+  mutate(`Mean FL (range)`=paste0(round(`FL mean`,2)," (",`FL range (mm)`,")")) %>% 
+  mutate(`Mean M (range)`=paste0(round(`m mean`,2)," (",`m range (g)`,")")) %>% 
+  mutate(`Mean K (range)` = paste0(round(`k mean`, 2)," (", `k range`, ")")) %>% 
+  mutate(`Soak Time (hrs)` = round(`Soak Time (hrs)`, 2)) %>% 
+  select(lake, Year, sp,`Net Type`,`Soak Time (hrs)`, n, `Mean FL (range)`,`Mean M (range)`,
+         `Mean K (range)`, CPUE) %>% 
+  arrange(`Net Type`)
+Table1.wright
+
+
 
 # table - demographics
 
@@ -393,7 +419,7 @@ Figure.FL.yr <- ggplot(data=catch.selectlk) +
   facet_wrap(~year, ncol=1)+
   scale_x_continuous(breaks = seq(100,max(catch.selectlk$fl, na.rm=T),50))+
   #scale_y_continuous(breaks = seq(0,30,5))+
-  labs(x="Fork Length (mm)", y="Frequency", fill="Maturity")+
+  labs(x="Fork Length (mm)", y="Frequency", fill="Species")+
   theme_bw()+
   theme(legend.position = "bottom")
 
@@ -729,37 +755,37 @@ Figure.FLwt.compare <- ggplot() +
 Figure.FLwt.compare
 
 #rainbows only
-Figure.FLwt.compare.rb <- ggplot() +
-  geom_point(data=lk.catch.prev.rb, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
-  geom_smooth(data=lk.catch.prev.rb, aes(x=logL, y=logm, col=yearF), method="lm")+
-  scale_colour_manual(name="Year",
-                      labels = c(unique(lk.catch.prev.rb$year)[1],unique(lk.catch.prev.rb$year)[2]), 
-                      values=c("black","blue"))+
-  scale_shape_manual(name="Year",
-                     labels = c(unique(lk.catch.prev.rb$year)[1],unique(lk.catch.prev.rb$year)[2]),
-                     values=c(17, 19))+
-  labs(x= "log10 Fork Length", y="log10 Mass")+ #title=paste(lk.catch.prev.rb$lake,"RB"), 
-  theme_bw()
-Figure.FLwt.compare.rb
-
-fit2.rb <- lm(logm~logL*yearF, data=lk.catch.prev.rb)
-car::Anova(fit2.rb)
-(p.flwtyrs.RB <- round(Anova(fit2.rb)[3,4], 3))
-
-#brookies only
-Figure.FLwt.compare.eb <- ggplot() +
-  geom_point(data=lk.catch.prev.eb, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
-  geom_smooth(data=lk.catch.prev.eb, aes(x=logL, y=logm, col=yearF), method="lm")+
-  scale_colour_manual(name="Year",
-                      labels = c(unique(lk.catch.prev.eb$year)[1],unique(lk.catch.prev.eb$year)[2]), 
-                      values=c("black","blue"))+
-  scale_shape_manual(name="Year",
-                     labels = c(unique(lk.catch.prev.eb$year)[1],unique(lk.catch.prev.eb$year)[2]),
-                     values=c(17, 19))+
-  labs( x= "log10 Fork Length", y="log10 Mass")+ #title=paste(lk.catch.prev$lake, "EB"),
-  theme_bw()
-Figure.FLwt.compare.eb
-
+# Figure.FLwt.compare.rb <- ggplot() +
+#   geom_point(data=lk.catch.prev.rb, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
+#   geom_smooth(data=lk.catch.prev.rb, aes(x=logL, y=logm, col=yearF), method="lm")+
+#   scale_colour_manual(name="Year",
+#                       labels = c(unique(lk.catch.prev.rb$year)[1],unique(lk.catch.prev.rb$year)[2]), 
+#                       values=c("black","blue"))+
+#   scale_shape_manual(name="Year",
+#                      labels = c(unique(lk.catch.prev.rb$year)[1],unique(lk.catch.prev.rb$year)[2]),
+#                      values=c(17, 19))+
+#   labs(x= "log10 Fork Length", y="log10 Mass")+ #title=paste(lk.catch.prev.rb$lake,"RB"), 
+#   theme_bw()
+# Figure.FLwt.compare.rb
+# 
+# fit2.rb <- lm(logm~logL*yearF, data=lk.catch.prev.rb)
+# car::Anova(fit2.rb)
+# (p.flwtyrs.RB <- round(Anova(fit2.rb)[3,4], 3))
+# 
+# #brookies only
+# Figure.FLwt.compare.eb <- ggplot() +
+#   geom_point(data=lk.catch.prev.eb, aes(x=logL, y=logm, col=yearF, shape=yearF),  alpha=0.4, size=4)+
+#   geom_smooth(data=lk.catch.prev.eb, aes(x=logL, y=logm, col=yearF), method="lm")+
+#   scale_colour_manual(name="Year",
+#                       labels = c(unique(lk.catch.prev.eb$year)[1],unique(lk.catch.prev.eb$year)[2]), 
+#                       values=c("black","blue"))+
+#   scale_shape_manual(name="Year",
+#                      labels = c(unique(lk.catch.prev.eb$year)[1],unique(lk.catch.prev.eb$year)[2]),
+#                      values=c(17, 19))+
+#   labs( x= "log10 Fork Length", y="log10 Mass")+ #title=paste(lk.catch.prev$lake, "EB"),
+#   theme_bw()
+# Figure.FLwt.compare.eb
+# 
 # EB yrs compare present:
 fit2.eb <- lm(logm~logL*yearF, data=lk.catch.prev.eb)
 summary(fit2.eb)
