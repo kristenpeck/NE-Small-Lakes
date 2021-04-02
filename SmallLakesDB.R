@@ -68,8 +68,8 @@ str(env)
 
 ### CTD profiles ####
 
-yr.select <- c(2017)
-lk.select <- c("Boot")
+yr.select <- c(2020)
+lk.select <- c("Wright")
 
 
 env.selectyr <- env %>% 
@@ -249,7 +249,7 @@ print(net.lines.map) #failed to label nets though... not sure why
 #### FL frequency, by maturity or species ####
 
 #### Select Year-catch ####
-yr.select <- 2017
+yr.select <- 2020
 
 catch.selectyr <- catch %>% 
   filter(year %in% yr.select) 
@@ -265,7 +265,7 @@ str(catch.effort.selectyr)
 unique(catch.effort.selectyr$sp)
 
 Table1 <- catch.effort.selectyr %>% 
-  filter(sp %in% c("RB","EB","SU","NP")) %>% 
+  filter(sp %in% c("RB","EB","SU","NP","YP")) %>% 
   dplyr::group_by(lake,sp, effortid) %>% 
   dplyr::summarise(`Soak Time (hrs)`=sum(unique(efforthr)), `Net Type`=paste(unique(nettype),collapse=","), 
                    Year=unique(year),`Species`=paste(unique(sp), collapse=","),n = length(unique(catchID)),
@@ -333,7 +333,7 @@ Table1.wright <- Table1 %>%
   arrange(`Net Type`)
 Table1.wright
 
-
+write.csv(Table1.wright, "Table1.wright.csv", row.names = F)
 
 # table - demographics
 
@@ -386,7 +386,7 @@ Figure.FL.mat #note this puts species together
 unique(catch.selectyr$year)
 unique(catch.selectyr$lake)
 
-lk.select = "Boot"
+lk.select = "Big"
 
 catch.selectyrlk <- catch.selectyr %>% 
   filter(lake %in% lk.select) 
@@ -1226,12 +1226,25 @@ ggplot(prev.EB.all)+
 # 
 # 
 
+### FFSBC data submission ####
+
+lk.profile <- read_excel("database_uploads_template_v8.2.xlsx",sheet = "Lake_Profile", na = "NA")
+
+str(lk.profile)
+
+str(effort)
+str(env)
+str(catch)
 
 
+yr.select <- "2019"
 
-
-
-
+catch.sum <- effort %>% 
+  full_join(catch, by = c("lake", "year", "effortid")) %>% 
+  dplyr::filter(year %in% yr.select) %>% 
+  group_by(year, lake, sp, nettype) %>% 
+  dplyr::summarize(n = length(sp))
+catch.sum  
 
 
 
