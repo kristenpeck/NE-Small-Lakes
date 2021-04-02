@@ -24,7 +24,7 @@ level_key <- c("No Age"=NA,"0+"=0, "1+"=1, "2+"=2, "3+"=3,
 
 ages <- age.BCPAL %>% 
   mutate(year = year(Date)) %>% 
-  mutate(PAL_age = recode(Scale_Age, !!!level_key)) %>% 
+  mutate(PAL_age = dplyr::recode(Scale_Age, !!!level_key)) %>% 
   select(year, Fish_No, Length_mm, Aged_Brood_Year, Scale_Age, PAL_age, Age_comments)
 
 
@@ -53,13 +53,13 @@ catch.w.ages  <- catch %>%
 ggplot(data=catch.w.ages)+
   geom_jitter(aes(x=age, y=fl, col=lake),height=0, width=0.2)
 
-
+ggplot(data=catch.w.ages)+
+  geom_boxplot(aes(x=age,group=age, y=fl), width=0.2)+
+  geom_jitter(aes(x=age, y=fl, col=lake),height=0, width=0.2)
 
 
 
 write.csv(catch.w.ages, "catch.w.ages.temp.csv",na = "", row.names=F)
-
-
 
 
 
