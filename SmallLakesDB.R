@@ -295,15 +295,15 @@ Table1.one.isl <- Table1 %>%
   arrange(sp,`Net Type`)
 Table1.one.isl
 
-Table1.moose <- Table1 %>% 
-  filter(lake %in% "Moose") %>% 
-  mutate(`Mean FL (range)`=paste0(round(`FL mean`,2)," (",`FL range (mm)`,")")) %>% 
-  mutate(`Mean M (range)`=paste0(round(`m mean`,2)," (",`m range (g)`,")")) %>% 
-  mutate(`Mean K (range)` = paste0(round(`k mean`, 2)," (", `k range`, ")")) %>% 
-  mutate(`Soak Time (hrs)` = round(`Soak Time (hrs)`, 2)) %>% 
-  select(lake, Year, sp,`Net Type`,`Soak Time (hrs)`, n, `Mean FL (range)`,`Mean M (range)`,
-         `Mean K (range)`, CPUE)
-Table1.moose
+# Table1.moose <- Table1 %>% 
+#   filter(lake %in% "Moose") %>% 
+#   mutate(`Mean FL (range)`=paste0(round(`FL mean`,2)," (",`FL range (mm)`,")")) %>% 
+#   mutate(`Mean M (range)`=paste0(round(`m mean`,2)," (",`m range (g)`,")")) %>% 
+#   mutate(`Mean K (range)` = paste0(round(`k mean`, 2)," (", `k range`, ")")) %>% 
+#   mutate(`Soak Time (hrs)` = round(`Soak Time (hrs)`, 2)) %>% 
+#   select(lake, Year, sp,`Net Type`,`Soak Time (hrs)`, n, `Mean FL (range)`,`Mean M (range)`,
+#          `Mean K (range)`, CPUE)
+# Table1.moose
 
 # Table1.boot <- Table1 %>% 
 #   filter(lake %in% "Boot") %>% 
@@ -803,9 +803,9 @@ Figure.FLwt.compare
 #   theme_bw()
 # Figure.FLwt.compare.rb
 # 
-# fit2.rb <- lm(logm~logL*yearF, data=lk.catch.prev.rb)
-# car::Anova(fit2.rb)
-# (p.flwtyrs.RB <- round(Anova(fit2.rb)[3,4], 3))
+ fit2.rb <- lm(logm~logL*yearF, data=lk.catch.prev.rb)
+ car::Anova(fit2.rb)
+ (p.flwtyrs.RB <- round(Anova(fit2.rb)[3,4], 3))
 # 
 # #brookies only
 # Figure.FLwt.compare.eb <- ggplot() +

@@ -23,6 +23,54 @@ ls()
 
 Ages were predicted for individual EB from `r noquote(yr.select)` without measured ages using a length-age key (n=`r nrow(EB.noages.lk.catch)`) from individuals with length and age measured (n=`r nrow(EB.ages.lk.catch)`). For comparison, ages were predicted for individual EB from `r noquote(yr.prev)` without measured ages using a length-age key (n=`r nrow(EB.noages.lk.catch.prev)`) from individuals with length and age measured (n=`r nrow(EB.ages.lk.catch.prev)`, Ogle (2016)).
 
+## Results
+
+The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. In 2017, eastern brook trout gained mass more quickly than rainbow trout as their length increased (p `r fit.growth.p`). From 2002 to 2017, the gain of mass per increment of fork length did not differ greatly for either rainbow trout (p = `r p.flwtyrs.RB`) or eastern brook trout (p = `r +`).
 
 
+## Tables
 
+Table 1. Summary of Eastern Brook Trout (EB) and Rainbow Trout (RB) catch during One Island Lake gillnet sampling in September 2017. Catch was summarized by number of fish caught (n), fork length (FL; mm), mass (M; g), and condition factor (K) mean and range. Catch-per-unit-effort (CPUE) is calculated as number of fish caught per hour of gillnet fishing.
+```{r Tables, echo=F, results='asis'}
+library(knitr)
+kable(Table1.one.isl)
+
+```
+
+## Figures
+
+```{r Figure.env, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300,fig.cap= "Figure 3: The vertical lake profile of temperature (degrees C) and dissolved oxygen (mg/L) on 22 Sept. 2017. Location of where the profile was taken is shown in Figure 1."}
+plot(Figure.env)
+
+```
+
+```{r Figure-FL freq, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, dpi=300,fig.cap= "Figure 4. The frequency of measured fork lengths of Eastern Brook Trout (EB, pink bars), Rainbow Trout (RB, blue bars) caught in gillnet sampling of One Island Lake in July 2003, Sept. 2012, June 2014 and Sept. 2017."}
+plot(Figure.FL.yr)
+
+```
+
+```{r Figure-K freq RB, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, dpi=300,fig.cap= "Figure condition: Frequency of Fulton's condition factor from Rainbow Trout caught in July 2003, Sept. 2012, June 2014 and Sept. 2017. Colour of bars correspond to lengths: Sub_stock = < 200 mm, Stock = 200 to 400 mm, Quality = 400 to 550 mm and Trophy > 550 mm. Vertical dotted line indicates a condition factor of 1."}
+plot(Figure.K.lk)
+```
+
+```{r Figure-K freq EB, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, dpi=300,fig.cap= "Figure condition: Frequency of Fulton's condition factor from Eastern Brook Trout caught in July 2003, Sept. 2012, June 2014 and Sept. 2017. Colour of bars correspond to lengths: Sub_stock = < 200 mm, Stock = 200 to 400 mm, Quality = 400 to 550 mm and Trophy > 550 mm. Vertical dotted line indicates a condition factor of 1."}
+plot(Figure.K.lk.EB)
+```
+
+
+```{r FigureFL-wtRB-EB, echo=F, results='asis', warning = FALSE, fig.height=8, fig.width=6, dpi=300,fig.cap= "Figure : Length-mass relationship of Rainbow Trout (blue triangles) and Brook Trout (pink circles) catch from One Island Lake in 2017. The top panel shows the fork length to mass relationship with a loess smoother, and the bottom panel is log10 transformed with a linear regression line and equation of relationship. The shaded area around the lines are SE."}
+plot(stackplots.FLwtALL)
+
+```
+
+
+```{r FigureFL-wt-yrs, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300,fig.cap= "Figure : Log fork length versus log mass comparing Eastern Brook Trout (left panel) and Rainbow Trout (right panel) from a previous survey in 2003 with the 2017 survey. The lines are linear regression of each year’s measurements with standard error shading. All lengths between 130 and 162 mm were removed to better compare 6- and 7-panel nets."}
+plot(Figure.FLwt.compare)
+
+```
+
+
+```{r Figure RB ages, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300, fig.cap= "Figure : Frequency of ages of Brook Trout (EB) and Rainbow Trout (RB) in 2003 and 2017"}
+plot(Figure.age.hist.yr)
+
+```
