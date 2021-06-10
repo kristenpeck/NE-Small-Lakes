@@ -25,7 +25,7 @@ Ages were predicted for individual EB from `r noquote(yr.select)` without measur
 
 ## Results
 
-The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. In 2017, eastern brook trout gained mass more quickly than rainbow trout as their length increased (p `r fit.growth.p`). From 2002 to 2017, the gain of mass per increment of fork length did not differ greatly for either rainbow trout (p = `r p.flwtyrs.RB`) or eastern brook trout (p = `r +`).
+The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. In 2017, eastern brook trout gained mass slightly more quickly than rainbow trout as their length increased (p = `r round(fit.growth.p,3)`. From 2003 to 2017, the gain of mass per increment of fork length did not differ greatly for rainbow trout (p = `r p.flwtyrs.RB`), but eastern brook trout gained mass slightly faster (p = `r p.flwtyrs.EB`).
 
 
 ## Tables
@@ -45,7 +45,7 @@ plot(Figure.env)
 ```
 
 ```{r Figure-FL freq, echo=F, results='asis', warning = FALSE, fig.height=6, fig.width=6, dpi=300,fig.cap= "Figure 4. The frequency of measured fork lengths of Eastern Brook Trout (EB, pink bars), Rainbow Trout (RB, blue bars) caught in gillnet sampling of One Island Lake in July 2003, Sept. 2012, June 2014 and Sept. 2017."}
-plot(Figure.FL.yr)
+plot(Figure.FL.yr.box)
 
 ```
 
@@ -70,7 +70,12 @@ plot(Figure.FLwt.compare)
 ```
 
 
-```{r Figure RB ages, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300, fig.cap= "Figure : Frequency of ages of Brook Trout (EB) and Rainbow Trout (RB) in 2003 and 2017"}
+```{r Figure RB ages freq, echo=F, results='asis', warning = FALSE, fig.height=4, fig.width=6, dpi=300, fig.cap= "Figure : Frequency of ages of Brook Trout (EB) and Rainbow Trout (RB) in 2003 and 2017"}
 plot(Figure.age.hist.yr)
+
+```
+
+```{r Figure RB ages vonB, echo=F, results='asis', warning = FALSE, fig.height=8, fig.width=6, dpi=300, fig.cap= "Figure : Fork length at ages of Rainbow Trout (RB) and Brook Trout (EB) in 2003 and 2017"}
+plot(fish.ages.noVonB)
 
 ```
