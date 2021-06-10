@@ -69,7 +69,7 @@ str(env)
 ### CTD profiles ####
 
 yr.select <- c(2017)
-lk.select <- c("One Island")
+lk.select <- c("Moose")
 
 
 env.selectyr <- env %>% 
@@ -83,18 +83,18 @@ env.selectyrlk <- env %>%
   filter(lake %in% lk.select) %>% 
   gather("var","value",tempdown, dodown, -conddown)
 
-Figure.env <- ggplot(data=env.selectyrlk)+
-  geom_path(aes(x=value, y=depthdown, colour=var), size=1.5)+
-  scale_y_reverse(name= "Depth (m)", 
-                  breaks=seq(min(env.selectyrlk$depthdown, na.rm=T),
-                             max(env.selectyrlk$depthdown, na.rm=T), 1))+
-  # scale_x_continuous(name = "",breaks=seq(floor(min(env.selectyrlk$value, na.rm=T)),
-  #                                         ceiling(max(env.selectyrlk$value, na.rm=T)),1))+
-  scale_colour_manual(values=c("black", "gray60"),
-                      name = "",labels = c("Diss. Oxygen (mg/L)","Temp. (deg C)"))+
-  facet_wrap(~year, ncol=2)+
-  theme_bw()
-Figure.env
+# Figure.env <- ggplot(data=env.selectyrlk)+
+#   geom_path(aes(x=value, y=depthdown, colour=var), size=1.5)+
+#   scale_y_reverse(name= "Depth (m)", 
+#                   breaks=seq(min(env.selectyrlk$depthdown, na.rm=T),
+#                              max(env.selectyrlk$depthdown, na.rm=T), 1))+
+#   # scale_x_continuous(name = "",breaks=seq(floor(min(env.selectyrlk$value, na.rm=T)),
+#   #                                         ceiling(max(env.selectyrlk$value, na.rm=T)),1))+
+#   scale_colour_manual(values=c("black", "gray60"),
+#                       name = "",labels = c("Diss. Oxygen (mg/L)","Temp. (deg C)"))+
+#   facet_wrap(~year, ncol=2)+
+#   theme_bw()
+# Figure.env
 
 # NOTE: no environmental data taken from:
 # 2017 - Moose, Inga, Sundance
@@ -161,7 +161,7 @@ str(locations)
 #### Appendix: gillnets maps: ###
 
 
-lk.select <- "One Island"
+lk.select <- "Moose"
 
 indiv.nets <- locations %>% 
   filter(lake %in% lk.select)
@@ -177,20 +177,20 @@ lks.albers <- st_transform(indiv.nets.st, crs=3005)
 
 #### Maps- Select Year-ENV ####
 
-yr.select <- c(2017)
-
-env.selectyr <- env %>% 
-  mutate(year = year(date)) %>% 
-  filter(year %in% yr.select, lake %in% lk.select) 
-
-env.point.yr <- env.selectyr %>% 
-  st_as_sf(coords = c("easting", "northing"), 
-           crs = 3157) 
-
-
-#change to match bcgov map data
-env.albers <- st_transform(env.point.yr, crs=3005)
-
+# yr.select <- c(2017)
+# 
+# env.selectyr <- env %>% 
+#   mutate(year = year(date)) %>% 
+#   filter(year %in% yr.select, lake %in% lk.select) 
+# 
+# env.point.yr <- env.selectyr %>% 
+#   st_as_sf(coords = c("easting", "northing"), 
+#            crs = 3157) 
+# 
+# 
+# #change to match bcgov map data
+# env.albers <- st_transform(env.point.yr, crs=3005)
+# 
 
 #overview map alternative - did not use because ugly
 
@@ -439,6 +439,42 @@ Figure.FL.yr <- ggplot(data=catch.selectlk) +
   theme(legend.position = "bottom")
 
 Figure.FL.yr
+
+#same thing but in boxplot
+Figure.FL.yr.box <- ggplot(data=catch.selectlk) +
+  geom_boxplot(aes(x=fl, fill=sp), varwidth=T, colour="black")+
+  geom_vline(xintercept = c(200,400,550), linetype = "dotted")+
+  facet_wrap(~year, ncol=1)+
+  scale_x_continuous(breaks = seq(100,max(catch.selectlk$fl, na.rm=T),50))+
+  labs(x="Fork Length (mm)", fill="Species")+
+  theme_bw()+
+  theme(legend.position = "bottom")
+Figure.FL.yr.box
+
+#describe % in each "stock type"
+
+  #Sub_stock = < 200 mm, Stock = 200 to 400 mm, Quality = 400 to 550 mm and Trophy > 550 mm
+unique(catch.selectyrlk$fl.cat)
+
+#RB
+stock.perc.RB <- catch.selectlk %>% 
+  filter(sp %in% "RB") %>% 
+  group_by(year) %>% 
+  summarize(substock = length(which(fl.cat %in% "Sub_stock")),
+            stock = length(which(fl.cat %in% "Stock")),
+            quality = length(which(fl.cat %in% "Quality")),
+            trophy = length(which(fl.cat %in% "Trophy")))
+(stock.perc.RB <- cbind(year=stock.perc.RB[,1],(round(stock.perc.RB[,2:5]/rowSums(stock.perc.RB[,2:5])*100,1))))
+
+#EB
+stock.perc.EB <- catch.selectlk %>% 
+  filter(sp %in% "EB") %>% 
+  group_by(year) %>% 
+  summarize(substock = length(which(fl.cat %in% "Sub_stock")),
+            stock = length(which(fl.cat %in% "Stock")),
+            quality = length(which(fl.cat %in% "Quality")),
+            trophy = length(which(fl.cat %in% "Trophy")))
+(stock.perc.EB <- cbind(year=stock.perc.EB[,1],(round(stock.perc.EB[,2:5]/rowSums(stock.perc.EB[,2:5])*100,1))))
 
 
 
@@ -839,11 +875,10 @@ car::Anova(fit2.eb) #note, if interaction is present then that should be interpr
 
 
 
-#### length at age ####
+#### LENGTH-AT-AGE ####
 
 lk.select <- "One Island"
 yr.select <- c("2017")
-
 
 lake.temp <- catch %>% 
   dplyr::filter(lake %in% lk.select) %>% 
@@ -852,7 +887,7 @@ lake.temp <- catch %>%
 (sampled.yrs <- unique(lake.temp$year))
 
 #(yr.prev <- sampled.yrs[length(sampled.yrs)-1])
-(yr.prev <- 2003) # use this as previous year for One Island
+(yr.prev <- c(2003)) # use this as previous year for One Island
 
 lk.catch.prev <- catch %>% 
   dplyr::filter(sp %in% c("RB", "EB"), lake %in% lk.select, surveytype %in% c("gillnet"),
@@ -864,10 +899,7 @@ lk.catch.prev <- catch %>%
   mutate(lcat10=lencat(fl, w=10))
 lk.catch.prev
 
-lk.catch.prev %>% 
-  filter(year %in% yr.select,lake %in% lk.select) %>% 
-  select(year,sp,fl,broodyear,age, age.num) %>% 
-  as.data.frame()
+
 
 #### Predict ages (ALK):####
  
@@ -1048,14 +1080,15 @@ Figure.age.hist.yr <- ggplot(data = fish.all)+
    theme_bw()
  Figure.age.hist.yr
 
-# Commented out Von B curves because only works for some lakes with lots of ages and samples.
- 
+
+#  # Commented out Von B curves because only works for some lakes with lots of ages and samples.
+#  
 # ### Von Bert. curves: ####
 # 
 # #RB- previous year:
 # yr.prev
 # 
-# prev.RB.all <- RB.all %>% 
+# prev.RB.all <- RB.all %>%
 #   dplyr::filter(yearF %in% as.character(yr.prev))
 # names(prev.RB.all)
 # ( svTyp <- vbStarts(fl~age.num,data=prev.RB.all) )
@@ -1077,17 +1110,17 @@ Figure.age.hist.yr <- ggplot(data = fish.all)+
 # 
 # ### Trouble-shooting: ###
 # 
-# #I have found that if you only have 4 ages or fewer in the samples, 
+# #I have found that if you only have 4 ages or fewer in the samples,
 # # the parameters are difficult to estimate.
 # 
-# #also if there is a small sample size? I think this is another reason parameters cannot be estimated. 
+# #also if there is a small sample size? I think this is another reason parameters cannot be estimated.
 # 
 # 
 # # RB - current year:
 # 
 # yr.select
 # 
-# curr.RB.all <- RB.all %>% 
+# curr.RB.all <- RB.all %>%
 #   dplyr::filter(yearF %in% (yr.select))
 # names(curr.RB.all)
 # ( svTyp <- vbStarts(fl~age.num,data=curr.RB.all) )
@@ -1167,7 +1200,7 @@ Figure.age.hist.yr <- ggplot(data = fish.all)+
 #                            "*","(1-exp(-",round(prev.RB.all.coeff[2],2),
 #                            "*","(age - ",round(prev.RB.all.coeff[3],2),"))"))
 # 
-# #shape=aged.predict     shape="aging", #remove if no samples were predicted 
+# #shape=aged.predict     shape="aging", #remove if no samples were predicted
 # 
 # # plot with von B, measured and predicted ages
 # 
@@ -1182,7 +1215,7 @@ Figure.age.hist.yr <- ggplot(data = fish.all)+
 #   annotate(geom = "text", x = max(RB.all$age.num, na.rm=T)-1, y = 10, label = label.RBprevyr, parse=F)+
 #   scale_x_continuous(breaks = seq(1, max(RB.all$age.num, na.rm=T),1),
 #                      minor_breaks = 1)+
-#   scale_y_continuous(limits = c(0,max(RB.all$fl+25, na.rm=T)), 
+#   scale_y_continuous(limits = c(0,max(RB.all$fl+25, na.rm=T)),
 #                                 breaks = seq(0, max(RB.all$fl+50, na.rm=T),100))+
 #   #facet_wrap(~sp)+
 #   scale_colour_manual(values=c("black", "purple"))+
@@ -1191,8 +1224,40 @@ Figure.age.hist.yr <- ggplot(data = fish.all)+
 #   theme(legend.position = "bottom")
 # 
 # fish.ages.plot.RB
-# 
-# 
+
+ #Length at Age (when VonB fails) ####
+ 
+(fish.agesRB.noVonB <- ggplot(data=RB.all)+
+  geom_jitter(aes(x=age.num, y=fl, col=yearF, shape=aged.predict),width = 0.15,
+              size=3, alpha=0.6)+
+  scale_x_continuous(breaks = seq(1, max(RB.all$age.num, na.rm=T),1),
+                     minor_breaks = 1)+
+  scale_y_continuous(limits = c(0,max(RB.all$fl+25, na.rm=T)),
+                     breaks = seq(0, max(RB.all$fl+50, na.rm=T),100))+
+    scale_colour_manual(values=c("black", "purple"))+
+    labs(title= "RB",x="Age", y="Fork Length (mm)", colour="Year:", shape="Ages:")+
+    theme_bw()+
+    theme(legend.position = "right")
+)
+(fish.agesEB.noVonB <- ggplot()+
+    geom_jitter(data=EB.all, aes(x=age.num, y=fl, col=yearF, shape=aged.predict),width = 0.15,
+                size=3, alpha=0.6)+
+    scale_x_continuous(limits = c(1,max(RB.all$age.num, na.rm=T)),breaks = seq(1, max(RB.all$age.num, na.rm=T),1),
+                       labels = seq(1, max(RB.all$age.num, na.rm=T),1),
+                       minor_breaks = 1)+
+    scale_y_continuous(limits = c(0,max(RB.all$fl+25, na.rm=T)),
+                       breaks = seq(0, max(RB.all$fl+50, na.rm=T),100))+
+    scale_colour_manual(values=c("gray25", "dark orange"))+
+    labs(title= "EB",x="Age", y="Fork Length (mm)", colour="Year:", shape="Ages:")+
+    theme_bw()+
+    theme(legend.position = "right")
+)
+
+#stackplots-length at age, no Von B
+
+ fish.ages.noVonB <- grid.arrange(fish.agesRB.noVonB, fish.agesEB.noVonB, ncol=1)
+
+  
 # 
 # 
 #  #
