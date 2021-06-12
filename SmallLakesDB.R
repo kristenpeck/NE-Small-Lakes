@@ -55,7 +55,7 @@ str(catch); names(catch)
 
 TableA2.rawdata <- catch %>% 
   select(lake, year, `Effort ID`=effortid, sp, `FL (mm)`=fl, `M (g)`=m, Stomach=stomach, 
-         `Age Structure`=`age structure`, Age=age, `Age ID`=ageid, Comments=comments)
+         `Age Structure`=`agestructure`, Age=age, `Age ID`=ageid, Comments=comments)
 #write.csv(TableA2.rawdata, "TableA2.rawdata.csv", row.names = F, na = "")
 
 
