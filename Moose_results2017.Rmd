@@ -13,13 +13,18 @@ source("SmallLakesDB.R")
 ls()
 ```
 ## Methods
-Ages were predicted for individual fish without measured ages using a length-age key (n=`r nrow(RB.noages.lk.catch)`). However, fish smaller than `r lcat10.toosmall.current` mm were not sampled for age and therefore the age of these fish could not be predicted (n=`r n.toosmall.current`). 
+
+The mass of individual rainbow trout measured only for fork length (n=`r nrow(no.wt)`) was predicted using the log length to mass relationship from individual fish measured for both fork length and mass (n=`r nrow(wt)`) and then back-transformed following Ogle (2016). 
+
+Ages were predicted for individual fish without measured ages using a separate length-age key for each year (n=`r nrow(RB.noages.lk.catch)` in 2017 and n=`r nrow(RB.noages.lk.catch.prev)` in 2013). However, fish smaller than `r lcat10.toosmall.current` mm in 2017 (n=`r n.toosmall.current`) and `r lcat10.toosmall.prev` mm in 2013 (n=`r n.toosmall.prev`) were not sampled for age and therefore the age of these fish could not be predicted. 
 
 
 ## Results
 Gillnets were soaked for a total of `r round(sum(Table1.moose[,"Soak Time (hrs)"]),2)` hours and a total of `r sum(Table1.moose$n)` rainbow trout were caught. The CPUE was `r round(sum(Table1.moose$n)/sum(Table1.moose[,"Soak Time (hrs)"]),2)` fish per net-hour and was approximately equal between the floating and sinking nets (Table 1). 
 
-The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. There was no significant difference between the 2013 and 2017 logFL~logM relationship (not shown, p=`r round(car::Anova(fit2.rb)[3,4],3)`).
+The relationship between mass and length for the catch in 2017 is shown in Figure FLWT. There was no significant difference between the 2013 and 2017 logFL~logM relationship (not shown, p=`r p.flwtyrs.RB`). The coefficient b of `r round(fitflwt.rb$coeff[2],2)` shows that fish are not growing more rotund as they grow larger. 
+
+The condition of the fish 
 
 
 
@@ -47,9 +52,7 @@ plot(stackplots.FLwt)
 ```
 
 
-```{r Figure3, echo=F, results='asis', fig.height=6, fig.width=6, fig.cap= ""  }
-print(lk.overview.map)
-```
+
 
 ```{r Figure4, echo=F, results='asis', fig.height=6, fig.width=6, fig.cap= "Figure 4: Fulton's condition factor from the three most recent Moose Lake surveys in July 2001, June 2013 and July 2017. Fish are coloured by stock category based on fork length: Sub_stock < 200 mm, Stock between 200 and 400 mm, Quality between 400 and 550 mm and Trophy > 550mm."}
 Figure.K.lk
