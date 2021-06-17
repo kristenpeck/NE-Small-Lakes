@@ -6,6 +6,9 @@
 source("SmallLakesDB.R")
 ls()
 
+
+
+
 str(catch)
 str(effort)
 str(env)
